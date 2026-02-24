@@ -15,7 +15,7 @@ body{
   font-family: -apple-system, system-ui, Segoe UI, Roboto, Arial, sans-serif;
   background: var(--bg);
   color: var(--text);
-  overflow: hidden; /* prevent page scroll */
+  overflow: hidden;
 }
 
 header{
@@ -27,7 +27,7 @@ header{
 
 main{
   padding: 12px;
-  height: calc(100vh - 62px); /* header height */
+  height: calc(100vh - 62px);
 }
 
 .stage{
@@ -42,7 +42,7 @@ main{
   width: 100%;
   height: 100%;
   display: block;
-  touch-action: none; /* iPhone dragging */
+  touch-action: none;
 }
 
 #baseline{
@@ -57,6 +57,15 @@ main{
   stroke-width: 7;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+#pipeHit{
+  fill: none;
+  stroke: rgba(255,255,255,0); /* invisible */
+  stroke-width: 40;            /* BIG hitbox */
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: stroke;      /* click/touch the stroke */
 }
 
 #c1, #c2{ fill: rgba(120,220,255,0.65); }
@@ -88,7 +97,7 @@ text{
 .hudTitle{
   fill: rgba(120,220,255,0.95);
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 900;
 }
 .hudKey{
   fill: rgba(255,255,255,0.70);
@@ -97,7 +106,7 @@ text{
 .hudVal{
   fill: rgba(255,255,255,0.92);
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 #infoBg{
