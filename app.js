@@ -222,17 +222,26 @@ function render(){
   scaleVal.textContent = `${fmt(PX_PER_IN,0)} px/in`;
 
   metricsEl.innerHTML = [
-    mrow("Bend angle θ", `${fmt(metrics.thetaDeg,1)}°`),
-    mrow("Radius R", `${fmt(metrics.R_in,2)} in`),
-    mrow("Spacing L (tangent→tangent along sloped leg)", `${fmt(metrics.L_in,2)} in`),
-    mrow("Rise between tangent points (L·sinθ)", `${fmt(metrics.rise_tangent_only,3)} in`),
-    mrow("Run between tangent points (L·cosθ)", `${fmt(metrics.run_tangent_only,3)} in`),
-    mrow("Arc rise each (R·(1−cosθ))", `${fmt(metrics.arc_rise_each,3)} in`),
-    mrow("True offset (rise + 2×arc rise)", `${fmt(metrics.true_offset,3)} in`),
-    mrow("True horizontal advance (run + 2×arc run)", `${fmt(metrics.true_advance,3)} in`),
-    mrow("Arc length each", `${fmt(metrics.arc_len_each,3)} in`),
-    mrow("Developed centerline length (lead-in/out + arcs + L)", `${fmt(metrics.developed_len,3)} in`)
-  ].join("");
+metricsEl.innerHTML = `
+<div class="group">
+  <div class="group-title">FIELD MARKS</div>
+  ${mrow("Angle", `${fmt(metrics.thetaDeg,1)}°`)}
+  ${mrow("Dist. Between Bends", `${fmt(metrics.L_in,2)} in`)}
+  ${mrow("Offset (Trig)", `${fmt(metrics.rise_tangent_only,3)} in`)}
+  ${mrow("True Offset", `${fmt(metrics.true_offset,3)} in`)}
+  ${mrow("Advance", `${fmt(metrics.true_advance,3)} in`)}
+  ${mrow("Arc Length", `${fmt(metrics.arc_len_each,3)} in`)}
+  ${mrow("Cut Length", `${fmt(metrics.developed_len,3)} in`)}
+</div>
+
+<div class="group">
+  <div class="group-title">REFERENCE</div>
+  ${mrow("CLR", `${fmt(metrics.R_in,2)} in`)}
+  ${mrow("Horizontal Run", `${fmt(metrics.run_tangent_only,3)} in`)}
+  ${mrow("Arc Rise", `${fmt(metrics.arc_rise_each,3)} in`)}
+  ${mrow("Arc Advance", `${fmt(metrics.arc_run_each,3)} in`)}
+</div>
+`;
 }
 
 function mrow(k, v){
