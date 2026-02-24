@@ -8,43 +8,11 @@
 </head>
 <body>
   <header>
-    <div class="title">Conduit Visual MVP (Offset Simulator)</div>
-    <div class="subtitle">Drag the handle to change bend angle. This is centerline geometry.</div>
+    <div class="title">Conduit Visual MVP — Offset</div>
+    <div class="subtitle">Drag the pipe handle to change “Between Bends”. Offset stays locked.</div>
   </header>
 
   <main>
-    <section class="panel">
-      <div class="row">
-        <label>
-          Bend radius R (in)
-          <input id="rInput" type="range" min="2" max="14" step="0.25" value="6" />
-          <span id="rVal" class="val"></span>
-        </label>
-      </div>
-
-      <div class="row">
-        <label>
-          Spacing between bends L (in) (tangent-to-tangent along the sloped segment)
-          <input id="lInput" type="range" min="2" max="48" step="0.25" value="12" />
-          <span id="lVal" class="val"></span>
-        </label>
-      </div>
-
-      <div class="row">
-        <label>
-          Display units scale (px per inch)
-          <input id="scaleInput" type="range" min="6" max="24" step="1" value="12" />
-          <span id="scaleVal" class="val"></span>
-        </label>
-      </div>
-
-      <div class="metrics" id="metrics"></div>
-
-      <div class="hint">
-        Tip: this models a real offset as <b>two arcs of radius R</b> plus a straight segment of length L.
-      </div>
-    </section>
-
     <section class="stage">
       <svg id="svg" viewBox="0 0 900 520" aria-label="Conduit drawing area">
         <defs>
@@ -62,7 +30,7 @@
         <!-- conduit path -->
         <path id="pipe" d=""></path>
 
-        <!-- bend centers (visual) -->
+        <!-- bend centers -->
         <circle id="c1" r="3"></circle>
         <circle id="c2" r="3"></circle>
 
@@ -70,12 +38,40 @@
         <circle id="t1" r="4"></circle>
         <circle id="t2" r="4"></circle>
 
-        <!-- drag handle (arc endpoint of first bend) -->
-        <circle id="handle" r="10"></circle>
+        <!-- draggable handle (controls Between Bends with Offset locked) -->
+        <circle id="handle" r="11"></circle>
 
-        <!-- labels -->
-        <text id="labelTheta" x="18" y="28"></text>
-        <text id="labelHelp" x="18" y="52"></text>
+        <!-- HUD -->
+        <g id="hud">
+          <rect id="hudBg" x="14" y="14" width="310" height="132" rx="12"></rect>
+
+          <text class="hudTitle" x="28" y="40">OFFSET (LOCKED)</text>
+
+          <text class="hudKey" x="28" y="68">Angle</text>
+          <text class="hudVal tappable" id="hudAngle" x="210" y="68">—</text>
+
+          <text class="hudKey" x="28" y="92">Offset</text>
+          <text class="hudVal tappable" id="hudOffset" x="210" y="92">—</text>
+
+          <text class="hudKey" x="28" y="116">Between Bends</text>
+          <text class="hudVal tappable" id="hudSpacing" x="210" y="116">—</text>
+
+          <text class="hudKey" x="28" y="140">Shrink</text>
+          <text class="hudVal tappable" id="hudShrink" x="210" y="140">—</text>
+        </g>
+
+        <!-- Info drawer -->
+        <g id="info" visibility="hidden">
+          <rect id="infoBg" x="14" y="372" width="872" height="134" rx="14"></rect>
+          <text id="infoTitle" x="28" y="404"></text>
+          <text id="infoBody" x="28" y="432"></text>
+          <text id="infoBody2" x="28" y="458"></text>
+          <text id="infoBody3" x="28" y="484"></text>
+          <text id="infoClose" class="tappable" x="820" y="404">Close</text>
+        </g>
+
+        <!-- small helper text -->
+        <text id="labelHelp" x="18" y="178"></text>
       </svg>
     </section>
   </main>
