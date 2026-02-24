@@ -1,14 +1,15 @@
+<!-- index.html (complete) -->
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>TrigBend — Offset</title>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="./style.css?v=20" />
 </head>
 <body>
   <header>
-    <div class="title">TrigBend — Offset</div>
+    <div class="title">TrigBend — Offset (v20)</div>
     <div class="subtitle">Drag the pipe to change “Between Bends”. Offset stays locked.</div>
   </header>
 
@@ -36,6 +37,7 @@
         <circle id="t1" r="4"></circle>
         <circle id="t2" r="4"></circle>
 
+        <!-- handle (still shown as a visual reference) -->
         <circle id="handle" r="11"></circle>
 
         <!-- HUD -->
@@ -67,13 +69,11 @@
           <text id="infoClose" class="tappable" x="820" y="404">Close</text>
         </g>
 
-        <!-- status/help line -->
         <text id="labelHelp" x="18" y="178"></text>
       </svg>
     </section>
   </main>
 
-  <!-- cache-bust -->
-  <script src="./app.js?v=4"></script>
+  <script src="./app.js?v=20"></script>
 </body>
 </html>
