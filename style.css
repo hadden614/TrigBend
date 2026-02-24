@@ -3,13 +3,12 @@
   --bg: #0b0f14;
   --text: rgba(255,255,255,0.92);
   --muted: rgba(255,255,255,0.65);
-  --pipe: rgba(255,255,255,0.92);
-  --handle: rgba(255,180,80,0.95);
-  --accent: rgba(120,220,255,0.95);
 
-  /* highlight + mark */
-  --mid: rgba(170,110,60,0.95);     /* brown highlight */
-  --midGlow: rgba(170,110,60,0.20);
+  --pipe: rgba(255,255,255,0.92);
+  --tt: rgba(190,120,60,0.95); /* brown highlight */
+  --handle: rgba(255,180,80,0.95);
+
+  --accent: rgba(120,220,255,0.95);
 }
 
 *{ box-sizing:border-box; }
@@ -64,26 +63,24 @@ main{
   stroke-linejoin: round;
 }
 
+#ttSegment{
+  fill: none;
+  stroke: var(--tt);
+  stroke-width: 10;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.95;
+}
+
 #pipeHit{
   fill: none;
   stroke: rgba(255,255,255,0);
-  stroke-width: 54;            /* big hitbox */
+  stroke-width: 70; /* very forgiving */
   stroke-linecap: round;
   stroke-linejoin: round;
   pointer-events: stroke;
 }
 
-#midSeg{
-  fill: none;
-  stroke: var(--mid);
-  stroke-width: 9;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  filter: drop-shadow(0 0 6px var(--midGlow));
-  pointer-events: none;
-}
-
-#c1, #c2{ fill: rgba(120,220,255,0.65); }
 #t1, #t2{ fill: rgba(120,220,255,0.95); }
 
 #handle{
@@ -92,13 +89,30 @@ main{
   stroke-width: 2;
 }
 
-#markStem{
+#startTick{
   stroke: rgba(255,255,255,0.85);
   stroke-width: 3;
   stroke-linecap: round;
+  opacity: 0.85;
 }
-#markArrow{
-  fill: rgba(255,255,255,0.92);
+
+#dirArrow{
+  fill: rgba(255,255,255,0.85);
+  opacity: 0.9;
+}
+
+#mLineL{
+  stroke: rgba(255,255,255,0.75);
+  stroke-width: 2;
+  marker-start: url(#arrowHead);
+  marker-end: url(#arrowHead);
+  opacity: 0.75;
+}
+
+#mTextL{
+  fill: rgba(255,255,255,0.80);
+  font-size: 13px;
+  font-weight: 800;
 }
 
 text{
@@ -122,10 +136,18 @@ text{
   font-size: 14px;
   font-weight: 900;
 }
+
+.hudBtn{
+  fill: rgba(255,255,255,0.85);
+  font-size: 13px;
+  font-weight: 900;
+}
+
 .hudKey{
   fill: rgba(255,255,255,0.70);
   font-size: 14px;
 }
+
 .hudVal{
   fill: rgba(255,255,255,0.92);
   font-size: 16px;
