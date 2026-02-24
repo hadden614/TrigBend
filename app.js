@@ -344,7 +344,9 @@ function buildGeometryInInches(){
   const START = add(T1, { x: -LEAD_IN_IN, y: 0 });
   const END = add(E2, { x: LEAD_OUT_IN, y: 0 });
 
-  const shrink = L_in * (1 - Math.cos(th));
+  // Full shrink: horizontal run reduction = straight-section loss + arc-section loss
+  // shrink = L*(1-cosθ) + 2R*(θ - sinθ)
+  const shrink = L_in * (1 - Math.cos(th)) + 2 * R_in * (th - Math.sin(th));
 
   return { START, T1, C1, E1, T2, C2, E2, END, shrink };
 }
@@ -408,7 +410,6 @@ function render(){
   const leftWing = add(baseIn, mul(nIn,  wingIn));
   const rightWing = add(baseIn, mul(nIn, -wingIn));
 
-  const B = toScreenFromIn(baseIn);
   const L = toScreenFromIn(leftWing);
   const R = toScreenFromIn(rightWing);
   const T = toScreenFromIn(tipIn);
@@ -559,7 +560,8 @@ function getSvgPoint(evt){
 function onDown(e){
   const p = getSvgPoint(e);
   dragging = true;
-  dragStart = { x: p.x, y: p.y, L_in };
+  // snapshot PX_PER_IN so drag sensitivity stays consistent even as auto-fit rescales
+  dragStart = { x: p.x, y: p.y, L_in, pxPerIn: PX_PER_IN };
   svg.setPointerCapture?.(e.pointerId);
   e.preventDefault();
 }
@@ -570,7 +572,7 @@ function onMove(e){
 
   // horizontal drag changes L (works well in both orientations on phone)
   const dx = p.x - dragStart.x;
-  const dL = dx / PX_PER_IN;
+  const dL = dx / dragStart.pxPerIn; // use scale captured at drag start
 
   L_in = clamp(dragStart.L_in + dL, 0.25, 240);
   render();
