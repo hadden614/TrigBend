@@ -1,9 +1,16 @@
+// app.js (complete) — v20
 // TrigBend — Offset (Offset locked)
-// Interaction: drag pipe (fat hitbox) left/right to change L (Between Bends).
-// Solver: θ is solved to keep Offset locked.
-// Constraints:
-//  1) Offset must be achievable for this L and CLR (R). If not, Offset caps to max and explains.
-//  2) Bends must not overlap (QuickBend-style “bend into previous bend”). If overlap, L caps to minimum and explains.
+//
+// Interaction:
+//  - Drag anywhere on the pipe (fat hitbox) left/right to change Between Bends (L).
+//  - Offset stays locked; angle is solved.
+//  - Tap Offset or Between Bends to type values.
+//  - Tap any HUD value for a QuickBend-style explanation.
+//
+// Constraints (CLR-aware):
+// 1) Max achievable offset for a given L and CLR occurs at θ_max. If locked offset > max, offset caps down.
+// 2) Prevent bend overlap (QuickBend “second bend starts inside previous bend radius”):
+//    If arcs overlap, L is increased to the minimum feasible value and the UI explains why.
 
 const svg = document.getElementById("svg");
 const pipe = document.getElementById("pipe");
@@ -29,21 +36,21 @@ const infoBody2 = document.getElementById("infoBody2");
 const infoBody3 = document.getElementById("infoBody3");
 const infoClose = document.getElementById("infoClose");
 
-// ---- Hidden tool parameters (later becomes “Bender Select”) ----
-let R_in = 6.0;       // CLR in inches (hidden)
-let PX_PER_IN = 12;   // internal display scale (hidden)
+// ---- Hidden tool parameters (later: Bender Select) ----
+let R_in = 6.0;       // CLR in inches (hidden for now)
+let PX_PER_IN = 12;   // internal display scale (hidden for now)
 
 // User-facing state
 let L_in = 12.0;          // Between Bends (tangent-to-tangent along sloped segment)
-let offsetLock_in = 6.0;  // LOCKED offset target (inches)
-let thetaDeg = 30.0;      // solved each render
+let offsetLock_in = 6.0;  // Locked Offset (in)
+let thetaDeg = 30.0;      // Solved each render
 
-// Lead-in/out for drawing context only
+// Drawing context (not part of field math)
 const LEAD_IN_IN = 8;
 const LEAD_OUT_IN = 8;
 
-// Overlap rule tuning
-const OVERLAP_CLEARANCE_IN = 0.25; // extra separation beyond 2R (tweak later)
+// Constraint tuning
+const OVERLAP_CLEARANCE_IN = 0.25; // add small buffer beyond 2R
 const THETA_MAX_DEG = 89.0;
 const THETA_MIN_DEG = 0.1;
 
@@ -63,16 +70,10 @@ function add(a,b){ return { x: a.x + b.x, y: a.y + b.y }; }
 function sub(a,b){ return { x: a.x - b.x, y: a.y - b.y }; }
 function mul(a,k){ return { x: a.x * k, y: a.y * k }; }
 function mag(v){ return Math.hypot(v.x, v.y); }
-
-function fmt(n, digits=2){
-  return Number.isFinite(n) ? n.toFixed(digits) : "—";
-}
+function fmt(n, digits=2){ return Number.isFinite(n) ? n.toFixed(digits) : "—"; }
 
 function baselineY(){ return 330; }
-
-function toScreen(pMath){
-  return { x: pMath.x, y: baselineY() - pMath.y };
-}
+function toScreen(pMath){ return { x: pMath.x, y: baselineY() - pMath.y }; }
 
 function setCircle(el, pMath){
   const p = toScreen(pMath);
@@ -98,7 +99,7 @@ function arcCmd(startMath, endMath, sweepCCW){
 }
 
 // ---- Core equations ----
-// Centerline offset height for given theta:
+// Offset height (centerline) for given theta and L:
 // H = L*sinθ + 2R*(1 - cosθ)
 function offsetForTheta(thetaRad, Ltest){
   return (Ltest * Math.sin(thetaRad)) + 2 * R_in * (1 - Math.cos(thetaRad));
@@ -109,6 +110,7 @@ function maxOffsetForL(Ltest){
   return offsetForTheta(th, Ltest);
 }
 
+// Solve theta for a target offset at given L (binary search; monotonic on 0..89)
 function solveThetaForOffset(targetH, Ltest){
   const low = deg2rad(THETA_MIN_DEG);
   const high = deg2rad(THETA_MAX_DEG);
@@ -117,7 +119,7 @@ function solveThetaForOffset(targetH, Ltest){
   const hHigh = offsetForTheta(high, Ltest);
 
   if (targetH <= hLow) return { thetaDeg: THETA_MIN_DEG, capped: true, reason: "Offset capped to minimum." };
-  if (targetH >= hHigh) return { thetaDeg: THETA_MAX_DEG, capped: true, reason: "Offset capped: not achievable for this Between Bends + CLR." };
+  if (targetH >= hHigh) return { thetaDeg: THETA_MAX_DEG, capped: true, reason: "Offset capped: not achievable for this L + CLR." };
 
   let a = low, b = high;
   for (let i = 0; i < 28; i++){
@@ -129,30 +131,27 @@ function solveThetaForOffset(targetH, Ltest){
   return { thetaDeg: rad2deg((a + b) / 2), capped: false, reason: "" };
 }
 
-// Build centers in INCH-space for overlap test (lead-in/out irrelevant)
+// Centers in INCH-space for overlap test (lead-in/out irrelevant)
 function centersInInches(thetaRad, Ltest){
-  // Put T1 at origin (0,0) in inches
+  // Place T1 at (0,0)
   const T1 = { x: 0, y: 0 };
-
-  // Incoming dir +x
   const dir0 = { x: 1, y: 0 };
 
-  // Center of first CCW arc: C1 = T1 + (0, R)
+  // First arc center
   const C1 = { x: 0, y: R_in };
 
-  // End of first arc E1
+  // End of first arc
   const v1s = { x: 0, y: -R_in };
   const v1e = rot(v1s, thetaRad);
   const E1 = add(C1, v1e);
 
-  // Direction after first arc
+  // Direction after first bend
   const dir1 = rot(dir0, thetaRad);
 
-  // Second tangent point T2 = E1 + dir1 * L
+  // Second tangent
   const T2 = add(E1, mul(dir1, Ltest));
 
-  // Center of second arc returning to horizontal:
-  // right normal of dir1 = (sinθ, -cosθ)
+  // Second arc center (return to horizontal)
   const rightN = { x: Math.sin(thetaRad), y: -Math.cos(thetaRad) };
   const C2 = add(T2, mul(rightN, R_in));
 
@@ -166,89 +165,87 @@ function overlaps(thetaRad, Ltest){
   return d < minDist;
 }
 
-// Find minimum L that avoids overlap while keeping Offset locked (theta solved per L).
+// Find minimum feasible L (no overlap) for current locked offset.
+// Uses binary search on L; theta is solved at each L.
 function findMinFeasibleL(targetOffset){
-  // Start at current L and increase until it stops overlapping and offset is achievable
   let Llo = 0.25;
   let Lhi = Math.max(L_in, 1);
 
-  // Ensure hi is feasible; grow if needed
-  for (let i = 0; i < 20; i++){
-    // First cap targetOffset if impossible at this Lhi
+  // Expand hi until feasible
+  for (let i = 0; i < 24; i++){
     const maxH = maxOffsetForL(Lhi);
     const usedOffset = Math.min(targetOffset, maxH);
+    const sol = solveThetaForOffset(usedOffset, Lhi);
+    const th = deg2rad(sol.thetaDeg);
 
-    const s = solveThetaForOffset(usedOffset, Lhi);
-    const th = deg2rad(s.thetaDeg);
-
-    if (!overlaps(th, Lhi) && usedOffset <= maxH + 1e-6) {
-      break;
-    }
+    if (!overlaps(th, Lhi)) break;
     Lhi *= 1.4;
     if (Lhi > 240) break;
   }
 
-  // Binary search from Llo..Lhi for first feasible
+  // Binary search for first feasible
   for (let i = 0; i < 28; i++){
     const mid = (Llo + Lhi) / 2;
-
     const maxH = maxOffsetForL(mid);
     const usedOffset = Math.min(targetOffset, maxH);
+    const sol = solveThetaForOffset(usedOffset, mid);
+    const th = deg2rad(sol.thetaDeg);
 
-    const s = solveThetaForOffset(usedOffset, mid);
-    const th = deg2rad(s.thetaDeg);
-
-    const ok = (!overlaps(th, mid));
-    if (ok) Lhi = mid;
+    if (!overlaps(th, mid)) Lhi = mid;
     else Llo = mid;
   }
+
   return Lhi;
 }
 
-// Enforce constraints and return render-ready theta/notes
-function enforceConstraints(){
-  let note = "";
+// Constraint enforcement returns a status message and a "capped" flag
+let lastCapReason = "";
 
-  // 1) If locked offset is impossible for this L, cap it down to max for this L
+function enforceConstraints(){
+  lastCapReason = "";
+
+  // A) Cap offset down if impossible at current L
   const maxH = maxOffsetForL(L_in);
   if (offsetLock_in > maxH){
     offsetLock_in = maxH;
-    note = "CAPPED: Offset too high for this Between Bends + CLR (bender radius).";
+    lastCapReason = "Offset capped: not achievable for this Between Bends + CLR.";
   }
 
-  // 2) Solve theta for (offsetLock, L)
+  // B) Solve theta
   const sol = solveThetaForOffset(offsetLock_in, L_in);
   thetaDeg = sol.thetaDeg;
 
-  if (sol.capped && !note){
-    note = "CAPPED: Offset limited by current Between Bends + CLR.";
+  if (sol.capped && !lastCapReason){
+    lastCapReason = sol.reason || "Value capped by limits.";
   }
 
-  // 3) Overlap check (QuickBend-style)
+  // C) Prevent overlap (QuickBend-style)
   const th = deg2rad(thetaDeg);
   if (overlaps(th, L_in)){
-    const newL = findMinFeasibleL(offsetLock_in);
-    if (newL > L_in + 1e-6){
-      L_in = newL;
-      // recompute with updated L
+    const minL = findMinFeasibleL(offsetLock_in);
+    if (minL > L_in + 1e-6){
+      L_in = minL;
+
+      // Re-cap offset if needed after L change (normally increases max offset, but keep safe)
       const maxH2 = maxOffsetForL(L_in);
       if (offsetLock_in > maxH2) offsetLock_in = maxH2;
+
       thetaDeg = solveThetaForOffset(offsetLock_in, L_in).thetaDeg;
     }
-    note = "CAPPED: Bends overlap (second bend starts inside first bend radius).";
+    lastCapReason = "Between Bends capped: bends overlap (second bend starts inside first bend radius).";
   }
 
-  if (!note){
-    note = "Drag pipe left/right to change Between Bends. Tap values to edit / learn.";
+  if (!lastCapReason){
+    return "Drag pipe left/right to change Between Bends. Tap HUD values to edit / learn.";
   }
-  return note;
+  return `CAPPED: ${lastCapReason} (tap any value for why)`;
 }
 
 function buildGeometry(){
   const status = enforceConstraints();
   const th = deg2rad(thetaDeg);
 
-  // inch -> pixel scale for drawing
+  // inch -> pixel for drawing
   const R = R_in * PX_PER_IN;
   const L = L_in * PX_PER_IN;
   const leadIn = LEAD_IN_IN * PX_PER_IN;
@@ -288,10 +285,8 @@ function buildGeometry(){
 function render(){
   const { status, pts, vals } = buildGeometry();
 
-  // baseline
   setLine(baseline, {x:0, y:0}, {x:900, y:0});
 
-  // build path commands
   const S = toScreen(pts.START);
   const T1s = toScreen(pts.T1);
   const T2s = toScreen(pts.T2);
@@ -309,14 +304,14 @@ function render(){
   pipe.setAttribute("d", d);
   pipeHit.setAttribute("d", d);
 
-  // markers
   setCircle(c1El, pts.C1);
   setCircle(c2El, pts.C2);
   setCircle(t1El, pts.T1);
   setCircle(t2El, pts.T2);
+
+  // handle shown at T2 (same as prior versions)
   setCircle(handleEl, pts.T2);
 
-  // HUD
   hudAngle.textContent = `${fmt(vals.thetaDeg,1)}°`;
   hudOffset.textContent = `${fmt(vals.offsetLock_in,2)} in`;
   hudSpacing.textContent = `${fmt(vals.L_in,2)} in`;
@@ -331,19 +326,19 @@ const explain = {
     title: "Angle",
     body: "Bend angle for each of the two bends.",
     body2: "Angle is solved automatically because Offset is locked.",
-    body3: "Changing Between Bends changes the required Angle."
+    body3: "If L gets smaller, angle must increase to hit the same offset."
   },
   offset: {
     title: "Offset (Locked)",
     body: "Your target rise of the centerline above baseline.",
-    body2: "This includes true CLR geometry (not only basic trig).",
-    body3: "If Offset is impossible for the current L+CLR, it will cap."
+    body2: "Includes CLR arc geometry (not only basic trig).",
+    body3: "If impossible for current L+CLR, it caps down to the max."
   },
   spacing: {
     title: "Between Bends",
     body: "Tangent-to-tangent spacing along the sloped segment.",
-    body2: "This is what you’re adjusting by dragging the pipe.",
-    body3: "If too small, bends overlap and the app caps it."
+    body2: "Drag the pipe left/right to adjust it.",
+    body3: "If too small, bends overlap and L caps up automatically."
   },
   shrink: {
     title: "Shrink",
@@ -354,8 +349,8 @@ const explain = {
   capped: {
     title: "Why it capped",
     body: "Two reasons:",
-    body2: "1) Offset too high for this Between Bends + CLR (needs >89°), OR",
-    body3: "2) Bends overlap (second bend starts inside first bend radius)."
+    body2: "1) Offset too high for this L + CLR (would require >89°), or",
+    body3: "2) Bends overlap: second bend starts inside the first bend radius."
   }
 };
 
@@ -401,7 +396,7 @@ hudShrink.addEventListener("dblclick", ()=>openInfo("capped"));
 
 infoClose.addEventListener("click", closeInfo);
 
-// ---- Dragging (pipe hitbox + handle) ----
+// ---- Dragging (pipe hitbox) ----
 let dragging = false;
 let dragStart = null;
 
@@ -441,9 +436,9 @@ function onUp(){
   dragStart = null;
 }
 
-// Start drag from handle OR anywhere on pipeHit
-handleEl.addEventListener("pointerdown", onDown);
+// Start drag from fat hitbox OR handle
 pipeHit.addEventListener("pointerdown", onDown);
+handleEl.addEventListener("pointerdown", onDown);
 
 svg.addEventListener("pointermove", onMove);
 svg.addEventListener("pointerup", onUp);
