@@ -5,12 +5,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>TrigBend — Offset</title>
-  <link rel="stylesheet" href="./style.css?v=30" />
+  <link rel="stylesheet" href="./style.css?v=40" />
 </head>
 <body>
   <header>
-    <div class="title">TrigBend — Offset (v30)</div>
-    <div class="subtitle">Drag the pipe to change “Between Bends”. Tap Angle/Offset to lock & edit. Tap title to flip axis.</div>
+    <div class="title">TrigBend — Offset</div>
+    <div class="subtitle">Drag the pipe. Tap Angle/Offset to lock. Tap Flip to rotate.</div>
   </header>
 
   <main>
@@ -20,6 +20,10 @@
           <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
             <path d="M 24 0 L 0 0 0 24" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
           </pattern>
+
+          <marker id="arrowHead" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(255,255,255,0.85)"></path>
+          </marker>
         </defs>
 
         <rect x="0" y="0" width="900" height="520" fill="url(#grid)"></rect>
@@ -27,45 +31,46 @@
         <!-- baseline -->
         <line id="baseline" x1="0" y1="0" x2="0" y2="0"></line>
 
-        <!-- conduit -->
+        <!-- pipe -->
         <path id="pipe" d=""></path>
+
+        <!-- highlighted tangent-to-tangent straight segment -->
+        <path id="ttSegment" d=""></path>
+
+        <!-- invisible fat hitbox -->
         <path id="pipeHit" d=""></path>
 
-        <!-- highlight: tangent-to-tangent straight segment -->
-        <path id="midSeg" d=""></path>
-
-        <!-- centers + tangents -->
-        <circle id="c1" r="3"></circle>
-        <circle id="c2" r="3"></circle>
+        <!-- markers -->
         <circle id="t1" r="4"></circle>
         <circle id="t2" r="4"></circle>
-
-        <!-- handle -->
         <circle id="handle" r="11"></circle>
 
-        <!-- layout mark (start mark / direction arrow at T1) -->
-        <g id="layoutMark">
-          <line id="markStem" x1="0" y1="0" x2="0" y2="0"></line>
-          <polygon id="markArrow" points=""></polygon>
-        </g>
+        <!-- layout start tick + direction arrow -->
+        <line id="startTick" x1="0" y1="0" x2="0" y2="0"></line>
+        <path id="dirArrow" d=""></path>
+
+        <!-- measurement line for L (between bends) -->
+        <line id="mLineL" x1="0" y1="0" x2="0" y2="0"></line>
+        <text id="mTextL" x="0" y="0"></text>
 
         <!-- HUD -->
         <g id="hud">
-          <rect id="hudBg" x="14" y="14" width="345" height="132" rx="12"></rect>
+          <rect id="hudBg" x="14" y="14" width="360" height="132" rx="12"></rect>
 
-          <text class="hudTitle" id="hudTitle" x="28" y="40">—</text>
+          <text class="hudTitle" id="hudTitle" x="28" y="40">LOCKED: OFFSET</text>
+          <text class="hudBtn tappable" id="hudFlip" x="330" y="40">Flip</text>
 
           <text class="hudKey" x="28" y="68">Angle</text>
-          <text class="hudVal tappable" id="hudAngle" x="245" y="68">—</text>
+          <text class="hudVal tappable" id="hudAngle" x="250" y="68">—</text>
 
           <text class="hudKey" x="28" y="92">Offset</text>
-          <text class="hudVal tappable" id="hudOffset" x="245" y="92">—</text>
+          <text class="hudVal tappable" id="hudOffset" x="250" y="92">—</text>
 
           <text class="hudKey" x="28" y="116">Between Bends</text>
-          <text class="hudVal tappable" id="hudSpacing" x="245" y="116">—</text>
+          <text class="hudVal tappable" id="hudSpacing" x="250" y="116">—</text>
 
           <text class="hudKey" x="28" y="140">Shrink</text>
-          <text class="hudVal tappable" id="hudShrink" x="245" y="140">—</text>
+          <text class="hudVal tappable" id="hudShrink" x="250" y="140">—</text>
         </g>
 
         <!-- Info drawer -->
@@ -83,6 +88,6 @@
     </section>
   </main>
 
-  <script src="./app.js?v=30"></script>
+  <script src="./app.js?v=40"></script>
 </body>
 </html>
