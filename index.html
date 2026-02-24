@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Conduit Visual MVP</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="title">Conduit Visual MVP (Offset Simulator)</div>
+    <div class="subtitle">Drag the handle to change bend angle. This is centerline geometry.</div>
+  </header>
+
+  <main>
+    <section class="panel">
+      <div class="row">
+        <label>
+          Bend radius R (in)
+          <input id="rInput" type="range" min="2" max="14" step="0.25" value="6" />
+          <span id="rVal" class="val"></span>
+        </label>
+      </div>
+
+      <div class="row">
+        <label>
+          Spacing between bends L (in) (tangent-to-tangent along the sloped segment)
+          <input id="lInput" type="range" min="2" max="48" step="0.25" value="12" />
+          <span id="lVal" class="val"></span>
+        </label>
+      </div>
+
+      <div class="row">
+        <label>
+          Display units scale (px per inch)
+          <input id="scaleInput" type="range" min="6" max="24" step="1" value="12" />
+          <span id="scaleVal" class="val"></span>
+        </label>
+      </div>
+
+      <div class="metrics" id="metrics"></div>
+
+      <div class="hint">
+        Tip: this models a real offset as <b>two arcs of radius R</b> plus a straight segment of length L.
+      </div>
+    </section>
+
+    <section class="stage">
+      <svg id="svg" viewBox="0 0 900 520" aria-label="Conduit drawing area">
+        <defs>
+          <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+            <path d="M 24 0 L 0 0 0 24" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+          </pattern>
+        </defs>
+
+        <!-- background grid -->
+        <rect x="0" y="0" width="900" height="520" fill="url(#grid)"></rect>
+
+        <!-- baseline (original centerline) -->
+        <line id="baseline" x1="0" y1="0" x2="0" y2="0"></line>
+
+        <!-- conduit path -->
+        <path id="pipe" d=""></path>
+
+        <!-- bend centers (visual) -->
+        <circle id="c1" r="3"></circle>
+        <circle id="c2" r="3"></circle>
+
+        <!-- tangent points -->
+        <circle id="t1" r="4"></circle>
+        <circle id="t2" r="4"></circle>
+
+        <!-- drag handle (arc endpoint of first bend) -->
+        <circle id="handle" r="10"></circle>
+
+        <!-- labels -->
+        <text id="labelTheta" x="18" y="28"></text>
+        <text id="labelHelp" x="18" y="52"></text>
+      </svg>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
