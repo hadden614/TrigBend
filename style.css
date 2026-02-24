@@ -1,10 +1,11 @@
+/* style.css (complete) */
 :root{
   --bg: #0b0f14;
   --text: rgba(255,255,255,0.92);
   --muted: rgba(255,255,255,0.65);
-  --accent: rgba(120,220,255,0.95);
   --pipe: rgba(255,255,255,0.92);
   --handle: rgba(255,180,80,0.95);
+  --accent: rgba(120,220,255,0.95);
 }
 
 *{ box-sizing:border-box; }
@@ -62,10 +63,10 @@ main{
 #pipeHit{
   fill: none;
   stroke: rgba(255,255,255,0); /* invisible */
-  stroke-width: 40;            /* BIG hitbox */
+  stroke-width: 46;            /* BIG hitbox */
   stroke-linecap: round;
   stroke-linejoin: round;
-  pointer-events: stroke;      /* click/touch the stroke */
+  pointer-events: stroke;
 }
 
 #c1, #c2{ fill: rgba(120,220,255,0.65); }
@@ -75,7 +76,6 @@ main{
   fill: var(--handle);
   stroke: rgba(0,0,0,0.35);
   stroke-width: 2;
-  cursor: grab;
 }
 
 text{
