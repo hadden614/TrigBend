@@ -5,12 +5,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>TrigBend — Offset</title>
-  <link rel="stylesheet" href="./style.css?v=20" />
+  <link rel="stylesheet" href="./style.css?v=30" />
 </head>
 <body>
   <header>
-    <div class="title">TrigBend — Offset (v20)</div>
-    <div class="subtitle">Drag the pipe to change “Between Bends”. Offset stays locked.</div>
+    <div class="title">TrigBend — Offset (v30)</div>
+    <div class="subtitle">Drag the pipe to change “Between Bends”. Tap Angle/Offset to lock & edit. Tap title to flip axis.</div>
   </header>
 
   <main>
@@ -24,39 +24,48 @@
 
         <rect x="0" y="0" width="900" height="520" fill="url(#grid)"></rect>
 
+        <!-- baseline -->
         <line id="baseline" x1="0" y1="0" x2="0" y2="0"></line>
 
-        <!-- visible pipe -->
+        <!-- conduit -->
         <path id="pipe" d=""></path>
-        <!-- invisible fat hitbox (same path as pipe) -->
         <path id="pipeHit" d=""></path>
 
+        <!-- highlight: tangent-to-tangent straight segment -->
+        <path id="midSeg" d=""></path>
+
+        <!-- centers + tangents -->
         <circle id="c1" r="3"></circle>
         <circle id="c2" r="3"></circle>
-
         <circle id="t1" r="4"></circle>
         <circle id="t2" r="4"></circle>
 
-        <!-- handle (still shown as a visual reference) -->
+        <!-- handle -->
         <circle id="handle" r="11"></circle>
+
+        <!-- layout mark (start mark / direction arrow at T1) -->
+        <g id="layoutMark">
+          <line id="markStem" x1="0" y1="0" x2="0" y2="0"></line>
+          <polygon id="markArrow" points=""></polygon>
+        </g>
 
         <!-- HUD -->
         <g id="hud">
-          <rect id="hudBg" x="14" y="14" width="320" height="132" rx="12"></rect>
+          <rect id="hudBg" x="14" y="14" width="345" height="132" rx="12"></rect>
 
-          <text class="hudTitle" x="28" y="40">OFFSET (LOCKED)</text>
+          <text class="hudTitle" id="hudTitle" x="28" y="40">—</text>
 
           <text class="hudKey" x="28" y="68">Angle</text>
-          <text class="hudVal tappable" id="hudAngle" x="220" y="68">—</text>
+          <text class="hudVal tappable" id="hudAngle" x="245" y="68">—</text>
 
           <text class="hudKey" x="28" y="92">Offset</text>
-          <text class="hudVal tappable" id="hudOffset" x="220" y="92">—</text>
+          <text class="hudVal tappable" id="hudOffset" x="245" y="92">—</text>
 
           <text class="hudKey" x="28" y="116">Between Bends</text>
-          <text class="hudVal tappable" id="hudSpacing" x="220" y="116">—</text>
+          <text class="hudVal tappable" id="hudSpacing" x="245" y="116">—</text>
 
           <text class="hudKey" x="28" y="140">Shrink</text>
-          <text class="hudVal tappable" id="hudShrink" x="220" y="140">—</text>
+          <text class="hudVal tappable" id="hudShrink" x="245" y="140">—</text>
         </g>
 
         <!-- Info drawer -->
@@ -74,6 +83,6 @@
     </section>
   </main>
 
-  <script src="./app.js?v=20"></script>
+  <script src="./app.js?v=30"></script>
 </body>
 </html>
