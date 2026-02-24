@@ -6,6 +6,10 @@
   --pipe: rgba(255,255,255,0.92);
   --handle: rgba(255,180,80,0.95);
   --accent: rgba(120,220,255,0.95);
+
+  /* highlight + mark */
+  --mid: rgba(170,110,60,0.95);     /* brown highlight */
+  --midGlow: rgba(170,110,60,0.20);
 }
 
 *{ box-sizing:border-box; }
@@ -47,7 +51,7 @@ main{
 }
 
 #baseline{
-  stroke: rgba(120,220,255,0.35);
+  stroke: rgba(120,220,255,0.30);
   stroke-width: 2;
   stroke-dasharray: 8 8;
 }
@@ -62,11 +66,21 @@ main{
 
 #pipeHit{
   fill: none;
-  stroke: rgba(255,255,255,0); /* invisible */
-  stroke-width: 46;            /* BIG hitbox */
+  stroke: rgba(255,255,255,0);
+  stroke-width: 54;            /* big hitbox */
   stroke-linecap: round;
   stroke-linejoin: round;
   pointer-events: stroke;
+}
+
+#midSeg{
+  fill: none;
+  stroke: var(--mid);
+  stroke-width: 9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 6px var(--midGlow));
+  pointer-events: none;
 }
 
 #c1, #c2{ fill: rgba(120,220,255,0.65); }
@@ -76,6 +90,15 @@ main{
   fill: var(--handle);
   stroke: rgba(0,0,0,0.35);
   stroke-width: 2;
+}
+
+#markStem{
+  stroke: rgba(255,255,255,0.85);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+#markArrow{
+  fill: rgba(255,255,255,0.92);
 }
 
 text{
