@@ -1,0 +1,2 @@
+# TrigBend
+Parametric geometry simulator.
