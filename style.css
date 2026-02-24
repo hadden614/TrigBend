@@ -122,3 +122,28 @@ text{
 @media (max-width: 900px){
   main{ grid-template-columns: 1fr; }
 }
+.metrics{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap:12px;
+}
+
+.group{
+  background: rgba(255,255,255,0.04);
+  padding:10px;
+  border-radius:12px;
+}
+
+.group-title{
+  font-weight:600;
+  margin-bottom:8px;
+  color: rgba(120,220,255,0.95);
+  font-size:13px;
+}
+
+.metric{
+  display:flex;
+  justify-content:space-between;
+  padding:4px 0;
+  font-size:13px;
+}
