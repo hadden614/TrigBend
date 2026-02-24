@@ -36,6 +36,8 @@ const mTextL = document.getElementById("mTextL");
 
 const hudTitle = document.getElementById("hudTitle");
 const hudFlip = document.getElementById("hudFlip");
+const keyAngle = document.getElementById("keyAngle");
+const keyOffset = document.getElementById("keyOffset");
 const hudAngle = document.getElementById("hudAngle");
 const hudOffset = document.getElementById("hudOffset");
 const hudSpacing = document.getElementById("hudSpacing");
@@ -382,9 +384,13 @@ function render(){
   pipe.setAttribute("d", d);
   pipeHit.setAttribute("d", d);
 
-  // highlight tangent-to-tangent straight segment (E1 -> T2)
-  const E1s = toScreenFromIn(g.E1);
-  ttSegment.setAttribute("d", `M ${E1s.x} ${E1s.y} L ${T2s.x} ${T2s.y}`);
+  // highlight both bend arcs (bend 1: T1→E1, bend 2: T2→E2)
+  ttSegment.setAttribute("d", [
+    `M ${T1s.x} ${T1s.y}`,
+    arcCmdIn(g.T1, g.E1, true),
+    `M ${T2s.x} ${T2s.y}`,
+    arcCmdIn(g.T2, g.E2, false),
+  ].join(" "));
 
   // markers
   setCircleIn(t1El, g.T1);
@@ -415,32 +421,34 @@ function render(){
   const T = toScreenFromIn(tipIn);
   dirArrow.setAttribute("d", `M ${T.x} ${T.y} L ${L.x} ${L.y} L ${R.x} ${R.y} Z`);
 
-  // measurement line for L: draw parallel to E1->T2, offset slightly
+  // Offset height annotation: vertical dimension from baseline to exit level
+  // placed 2" to the right of the pipe end so it doesn't overlap the conduit
   {
-    const a = toScreenFromIn(g.E1);
-    const b = toScreenFromIn(g.T2);
+    const measX = g.END.x + 2;
+    const a = toScreenFromIn({ x: measX, y: 0 });           // at baseline
+    const b = toScreenFromIn({ x: measX, y: offset_in });   // at offset height
+
     const vx = b.x - a.x, vy = b.y - a.y;
     const len = Math.hypot(vx, vy) || 1;
-    const nx = -vy/len, ny = vx/len;
+    const nx = -vy/len, ny = vx/len; // perpendicular pointing outward
 
-    // offset outward
-    const off = 22;
-    const a2 = { x: a.x + nx*off, y: a.y + ny*off };
-    const b2 = { x: b.x + nx*off, y: b.y + ny*off };
+    mLineL.setAttribute("x1", a.x);
+    mLineL.setAttribute("y1", a.y);
+    mLineL.setAttribute("x2", b.x);
+    mLineL.setAttribute("y2", b.y);
 
-    mLineL.setAttribute("x1", a2.x);
-    mLineL.setAttribute("y1", a2.y);
-    mLineL.setAttribute("x2", b2.x);
-    mLineL.setAttribute("y2", b2.y);
-
-    const mid = { x: (a2.x + b2.x)/2, y: (a2.y + b2.y)/2 };
-    mTextL.setAttribute("x", mid.x + nx*10);
-    mTextL.setAttribute("y", mid.y + ny*10);
-    mTextL.textContent = `${fmt(L_in,2)} in`;
+    const mid = { x: (a.x + b.x)/2, y: (a.y + b.y)/2 };
+    mTextL.setAttribute("x", mid.x + nx*14);
+    mTextL.setAttribute("y", mid.y + ny*14 + 4);
+    mTextL.textContent = `${fmt(offset_in,2)} in`;
   }
 
-  // HUD values
-  hudTitle.textContent = lockMode === "offset" ? "LOCKED: OFFSET" : "LOCKED: ANGLE";
+  // HUD values — highlight the currently-locked row's label in cyan
+  const lockedClr  = "rgba(120,220,255,0.95)";
+  const unlockedClr = "rgba(255,255,255,0.70)";
+  hudTitle.textContent = lockMode === "offset" ? "OFFSET LOCKED" : "ANGLE LOCKED";
+  keyAngle.setAttribute("fill", lockMode === "angle"  ? lockedClr : unlockedClr);
+  keyOffset.setAttribute("fill", lockMode === "offset" ? lockedClr : unlockedClr);
   hudAngle.textContent = `${fmt(thetaDeg,1)}°`;
   hudOffset.textContent = `${fmt(offset_in,2)} in`;
   hudSpacing.textContent = `${fmt(L_in,2)} in`;
@@ -471,9 +479,9 @@ const explain = {
   },
   shrink: {
     title: "Shrink",
-    body: "How much horizontal distance the offset consumes.",
-    body2: "Used when measuring from a fixed point: subtract shrink from your run.",
-    body3: "Formula: Shrink = L(1 − cosθ)."
+    body: "How much horizontal run is lost to the offset geometry.",
+    body2: "Subtract shrink from your straight-run dimension when marking layout.",
+    body3: "Formula: L(1−cosθ) + 2R(θ−sinθ)."
   },
   flip: {
     title: "Flip",
