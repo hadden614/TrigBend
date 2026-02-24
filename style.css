@@ -1,0 +1,124 @@
+:root{
+  --bg: #0b0f14;
+  --panel: #121826;
+  --text: rgba(255,255,255,0.92);
+  --muted: rgba(255,255,255,0.65);
+  --line: rgba(255,255,255,0.18);
+  --accent: rgba(120,220,255,0.95);
+  --pipe: rgba(255,255,255,0.9);
+  --handle: rgba(255,180,80,0.95);
+}
+
+*{ box-sizing:border-box; }
+body{
+  margin:0;
+  font-family: -apple-system, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+header{
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.title{ font-weight: 700; font-size: 16px; }
+.subtitle{ margin-top: 4px; color: var(--muted); font-size: 12px; }
+
+main{
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 12px;
+  padding: 12px;
+}
+
+.panel{
+  background: var(--panel);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 12px;
+}
+
+.row{ margin-bottom: 10px; }
+label{
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+input[type="range"]{ width: 100%; }
+.val{ color: var(--muted); font-size: 12px; }
+
+.metrics{
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+.metric{
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.03);
+}
+.metric .k{ color: var(--muted); }
+.metric .v{ font-variant-numeric: tabular-nums; }
+
+.hint{
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.stage{
+  background: #070a0e;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+#svg{
+  width: 100%;
+  height: auto;
+  display: block;
+  touch-action: none; /* important for dragging on iPhone */
+}
+
+#baseline{
+  stroke: rgba(120,220,255,0.35);
+  stroke-width: 2;
+  stroke-dasharray: 8 8;
+}
+
+#pipe{
+  fill: none;
+  stroke: var(--pipe);
+  stroke-width: 7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+#c1, #c2{
+  fill: rgba(120,220,255,0.65);
+}
+#t1, #t2{
+  fill: rgba(120,220,255,0.95);
+}
+
+#handle{
+  fill: var(--handle);
+  stroke: rgba(0,0,0,0.35);
+  stroke-width: 2;
+  cursor: grab;
+}
+
+text{
+  fill: rgba(255,255,255,0.85);
+  font-size: 14px;
+}
+@media (max-width: 900px){
+  main{ grid-template-columns: 1fr; }
+}
