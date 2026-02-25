@@ -1,4 +1,4 @@
-// app.js (complete) — v41
+// app.js (complete) — v43
 // TrigBend — Offset
 //
 // Visible changes included:
@@ -38,6 +38,8 @@ const hudTitle = document.getElementById("hudTitle");
 const hudFlip = document.getElementById("hudFlip");
 const keyAngle = document.getElementById("keyAngle");
 const keyOffset = document.getElementById("keyOffset");
+const cardBgAngle  = document.getElementById("cardBgAngle");
+const cardBgOffset = document.getElementById("cardBgOffset");
 const hudAngle = document.getElementById("hudAngle");
 const hudOffset = document.getElementById("hudOffset");
 const hudSpacing = document.getElementById("hudSpacing");
@@ -70,14 +72,17 @@ const THETA_MIN_DEG = 0.1;
 const THETA_MAX_DEG = 89.0;
 const OVERLAP_CLEARANCE_IN = 0.25;
 
-// auto-fit scale — portrait layout, conduit drawn below the HUD
+// auto-fit scale — split-column layout:
+//   orient="y" → conduit in left 240px column, cards on right
+//   orient="x" → conduit expanded to full width
 const VIEW_W = 500;
 const VIEW_H = 820;
-const MARGIN = 44;
-const HUD_BOTTOM = 206;  // y-pixel where HUD+labelHelp end; conduit drawn below here
-const DRAW_CENTER_Y = Math.round(HUD_BOTTOM + (VIEW_H - HUD_BOTTOM) / 2); // ~513
+const MARGIN = 16;
+const COL_W  = 240;   // width of conduit column (left side)
+const DRAW_CENTER_X_Y = 115;  // horizontal center of conduit when orient="y"
+const DRAW_CENTER_Y   = 420;  // vertical center of conduit (fixed)
 const PX_PER_IN_MIN = 7;
-const PX_PER_IN_MAX = 28;
+const PX_PER_IN_MAX = 32;
 let PX_PER_IN = 14;
 
 // centering in *pixels* after scaling and orientation
@@ -256,17 +261,21 @@ function computeAutoFitScaleAndShift(allPtsIn, extraRadiusIn){
   const wIn = Math.max(1e-6, maxx - minx);
   const hIn = Math.max(1e-6, maxy - miny);
 
-  const sx = (VIEW_W - 2*MARGIN) / wIn;
-  const sy = (VIEW_H - HUD_BOTTOM - 2*MARGIN) / hIn;
+  // orient="y": conduit lives in left COL_W; orient="x": full width
+  const drawCX = orient === "y" ? DRAW_CENTER_X_Y : (VIEW_W / 2);
+  const availW = orient === "y" ? (COL_W - 2*MARGIN) : (VIEW_W - 2*MARGIN);
+  const availH = VIEW_H - 2*MARGIN;
+
+  const sx = availW / wIn;
+  const sy = availH / hIn;
   PX_PER_IN = clamp(Math.min(sx, sy), PX_PER_IN_MIN, PX_PER_IN_MAX);
 
-  // shift so bbox center sits at screen center (in px, then converted in toScreenFromIn)
   const cx = (minx + maxx)/2;
   const cy = (miny + maxy)/2;
 
   shiftPx = {
-    x: (VIEW_W/2) - (cx * PX_PER_IN),
-    y: 0 - (cy * PX_PER_IN) // because we already center around VIEW_H/2 in y mapping
+    x: drawCX - (cx * PX_PER_IN),
+    y: 0 - (cy * PX_PER_IN)
   };
 }
 
@@ -447,16 +456,22 @@ function render(){
     mTextL.textContent = `${fmt(offset_in,2)} in`;
   }
 
-  // HUD values — highlight the currently-locked row's label in cyan
-  const lockedClr  = "rgba(120,220,255,0.95)";
-  const unlockedClr = "rgba(255,255,255,0.70)";
+  // Card highlighting: locked card gets blue tint + cyan label
+  const LOCKED_CARD_BG   = "rgba(8,70,150,0.65)";
+  const NORMAL_CARD_BG   = "rgba(14,22,38,0.90)";
+  const lockedLabelClr   = "rgba(120,220,255,0.95)";
+  const unlockedLabelClr = "rgba(255,255,255,0.55)";
+
+  cardBgAngle.setAttribute("fill",  lockMode === "angle"  ? LOCKED_CARD_BG : NORMAL_CARD_BG);
+  cardBgOffset.setAttribute("fill", lockMode === "offset" ? LOCKED_CARD_BG : NORMAL_CARD_BG);
+  keyAngle.setAttribute("fill",  lockMode === "angle"  ? lockedLabelClr : unlockedLabelClr);
+  keyOffset.setAttribute("fill", lockMode === "offset" ? lockedLabelClr : unlockedLabelClr);
+
   hudTitle.textContent = lockMode === "offset" ? "OFFSET LOCKED" : "ANGLE LOCKED";
-  keyAngle.setAttribute("fill", lockMode === "angle"  ? lockedClr : unlockedClr);
-  keyOffset.setAttribute("fill", lockMode === "offset" ? lockedClr : unlockedClr);
   hudAngle.textContent = `${fmt(thetaDeg,1)}°`;
-  hudOffset.textContent = `${fmt(offset_in,2)} in`;
-  hudSpacing.textContent = `${fmt(L_in,2)} in`;
-  hudShrink.textContent = `${fmt(g.shrink,2)} in`;
+  hudOffset.textContent = `${fmt(offset_in,2)}"`;
+  hudSpacing.textContent = `${fmt(L_in,2)}"`;
+  hudShrink.textContent = `${fmt(g.shrink,2)}"`;
 
   labelHelp.textContent = lastStatus;
 }

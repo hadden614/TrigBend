@@ -5,12 +5,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>TrigBend — Offset</title>
-  <link rel="stylesheet" href="./style.css?v=42" />
+  <link rel="stylesheet" href="./style.css?v=43" />
 </head>
 <body>
   <header>
     <div class="title">TrigBend — Offset</div>
-    <div class="subtitle">Drag pipe to change spacing. Tap Angle or Offset value to lock it. Tap Flip to rotate.</div>
   </header>
 
   <main>
@@ -18,7 +17,7 @@
       <svg id="svg" viewBox="0 0 500 820" aria-label="Conduit drawing area">
         <defs>
           <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
-            <path d="M 24 0 L 0 0 0 24" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+            <path d="M 24 0 L 0 0 0 24" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
           </pattern>
 
           <marker id="arrowHead" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto" markerUnits="strokeWidth">
@@ -26,7 +25,13 @@
           </marker>
         </defs>
 
-        <rect x="0" y="0" width="500" height="820" fill="url(#grid)"></rect>
+        <!-- background grid (left column only) -->
+        <rect x="0" y="0" width="244" height="820" fill="url(#grid)"></rect>
+        <!-- right column background (slightly lighter) -->
+        <rect x="244" y="0" width="256" height="820" fill="rgba(10,14,22,0.60)"></rect>
+
+        <!-- vertical divider -->
+        <line x1="244" y1="0" x2="244" y2="820" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
 
         <!-- baseline -->
         <line id="baseline" x1="0" y1="0" x2="0" y2="0"></line>
@@ -53,41 +58,64 @@
         <line id="mLineL" x1="0" y1="0" x2="0" y2="0"></line>
         <text id="mTextL" x="0" y="0"></text>
 
-        <!-- HUD — full width across top -->
-        <g id="hud">
-          <rect id="hudBg" x="14" y="14" width="472" height="180" rx="14"></rect>
+        <!-- lock status (tiny, bottom of conduit column) -->
+        <text id="hudTitle" class="tappable" x="122" y="790"
+              text-anchor="middle"
+              style="font-size:11px; fill:rgba(120,220,255,0.50)">OFFSET LOCKED</text>
 
-          <text class="hudTitle" id="hudTitle" x="28" y="46">OFFSET LOCKED</text>
-          <text class="hudBtn tappable" id="hudFlip" x="466" y="46" text-anchor="end">Flip</text>
+        <!-- ── Right column ── -->
 
-          <text class="hudKey" id="keyAngle" x="28" y="82">Angle</text>
-          <text class="hudVal tappable" id="hudAngle" x="466" y="82" text-anchor="end">—</text>
-
-          <text class="hudKey" id="keyOffset" x="28" y="114">Offset</text>
-          <text class="hudVal tappable" id="hudOffset" x="466" y="114" text-anchor="end">—</text>
-
-          <text class="hudKey" x="28" y="146">Between Bends</text>
-          <text class="hudVal tappable" id="hudSpacing" x="466" y="146" text-anchor="end">—</text>
-
-          <text class="hudKey" x="28" y="178">Shrink</text>
-          <text class="hudVal tappable" id="hudShrink" x="466" y="178" text-anchor="end">—</text>
+        <!-- Flip button -->
+        <g id="hudFlip" class="tappable">
+          <rect x="256" y="14" width="230" height="48" rx="13"
+                fill="rgba(30,44,68,0.90)" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+          <text class="hudBtn" x="371" y="46" text-anchor="middle">Flip</text>
         </g>
 
-        <!-- Info drawer — anchored to bottom -->
+        <!-- Angle card -->
+        <g id="cardGroupAngle">
+          <rect id="cardBgAngle" class="cardBg" x="256" y="76" width="230" height="128" rx="16"/>
+          <text class="cardKey" id="keyAngle" x="272" y="106">Angle</text>
+          <text class="cardVal tappable" id="hudAngle" x="474" y="182" text-anchor="end">—</text>
+        </g>
+
+        <!-- Offset card -->
+        <g id="cardGroupOffset">
+          <rect id="cardBgOffset" class="cardBg" x="256" y="218" width="230" height="128" rx="16"/>
+          <text class="cardKey" id="keyOffset" x="272" y="248">Offset</text>
+          <text class="cardVal tappable" id="hudOffset" x="474" y="324" text-anchor="end">—</text>
+        </g>
+
+        <!-- Between Bends card -->
+        <g>
+          <rect class="cardBg" x="256" y="360" width="230" height="128" rx="16"/>
+          <text class="cardKey" x="272" y="390">Between Bends</text>
+          <text class="cardVal tappable" id="hudSpacing" x="474" y="466" text-anchor="end">—</text>
+        </g>
+
+        <!-- Shrink card -->
+        <g>
+          <rect class="cardBg" x="256" y="502" width="230" height="128" rx="16"/>
+          <text class="cardKey" x="272" y="532">Shrink</text>
+          <text class="cardVal tappable" id="hudShrink" x="474" y="608" text-anchor="end">—</text>
+        </g>
+
+        <!-- Info drawer — overlays bottom of screen -->
         <g id="info" visibility="hidden">
-          <rect id="infoBg" x="14" y="614" width="472" height="196" rx="14"></rect>
-          <text id="infoTitle" x="28" y="642"></text>
-          <text id="infoBody" x="28" y="668"></text>
-          <text id="infoBody2" x="28" y="692"></text>
-          <text id="infoBody3" x="28" y="716"></text>
-          <text id="infoClose" class="tappable" x="466" y="642" text-anchor="end">Close</text>
+          <rect id="infoBg" x="8" y="626" width="484" height="186" rx="16"></rect>
+          <text id="infoTitle" x="24" y="654"></text>
+          <text id="infoBody"  x="24" y="678"></text>
+          <text id="infoBody2" x="24" y="700"></text>
+          <text id="infoBody3" x="24" y="722"></text>
+          <text id="infoClose" class="tappable" x="476" y="654" text-anchor="end">Close</text>
         </g>
 
-        <text id="labelHelp" x="18" y="202"></text>
+        <!-- drag/status hint -->
+        <text id="labelHelp" x="122" y="810" text-anchor="middle"></text>
       </svg>
     </section>
   </main>
 
-  <script src="./app.js?v=42"></script>
+  <script src="./app.js?v=43"></script>
 </body>
 </html>
