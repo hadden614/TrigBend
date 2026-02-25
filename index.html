@@ -1,11 +1,11 @@
-<!-- index.html (complete) -->
+<!-- index.html (complete) — Part 1 rewrite -->
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>TrigBend — Offset</title>
-  <link rel="stylesheet" href="./style.css?v=44" />
+  <link rel="stylesheet" href="./style.css?v=50" />
 </head>
 <body>
   <header>
@@ -48,56 +48,62 @@
         <!-- markers -->
         <circle id="t1" r="5"></circle>
         <circle id="t2" r="5"></circle>
-        <circle id="handle" r="15"></circle>
+        <circle id="handle" r="18"></circle>
 
         <!-- layout start tick + direction arrow -->
         <line id="startTick" x1="0" y1="0" x2="0" y2="0"></line>
         <path id="dirArrow" d=""></path>
 
-        <!-- offset height measurement annotation -->
+        <!-- offset height measurement annotation (baseline to exit) -->
         <line id="mLineL" x1="0" y1="0" x2="0" y2="0"></line>
         <text id="mTextL" x="0" y="0"></text>
 
-        <!-- lock status (tiny, bottom of conduit column) -->
-        <text id="hudTitle" class="tappable" x="122" y="790"
+        <!-- C1 to C2 dimension line (between bends, arc centers) -->
+        <line id="mLineC" x1="0" y1="0" x2="0" y2="0"></line>
+        <text id="mTextC" x="0" y="0"></text>
+
+        <!-- lock status (tiny, bottom of left column) -->
+        <text id="hudTitle" class="tappable" x="110" y="790"
               text-anchor="middle"
               style="font-size:11px; fill:rgba(120,220,255,0.50)">OFFSET LOCKED</text>
 
-        <!-- ── Right column ── -->
+        <!-- ── Right column cards ── -->
+        <!-- Cards: x=258, w=226, h=78, gap=8 -->
+        <!-- Stack: y=14, 100, 186, 272, 358 -->
 
-        <!-- Flip button -->
-        <g id="hudFlip" class="tappable">
-          <rect x="256" y="14" width="230" height="48" rx="13"
-                fill="rgba(30,44,68,0.90)" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
-          <text class="hudBtn" x="371" y="46" text-anchor="middle">Flip</text>
-        </g>
-
-        <!-- Angle card -->
+        <!-- Card 1: Angle  y=14 -->
         <g id="cardGroupAngle">
-          <rect id="cardBgAngle" class="cardBg" x="256" y="76" width="230" height="128" rx="16"/>
-          <text class="cardKey" id="keyAngle" x="272" y="106">Angle</text>
-          <text class="cardVal tappable" id="hudAngle" x="474" y="182" text-anchor="end">—</text>
+          <rect id="cardBgAngle" class="cardBg" x="258" y="14" width="226" height="78" rx="14"/>
+          <text class="cardKey" id="keyAngle" x="272" y="36">Angle</text>
+          <text class="cardVal tappable" id="hudAngle" x="480" y="79" text-anchor="end">—</text>
         </g>
 
-        <!-- Offset card -->
+        <!-- Card 2: Offset  y=100 -->
         <g id="cardGroupOffset">
-          <rect id="cardBgOffset" class="cardBg" x="256" y="218" width="230" height="128" rx="16"/>
-          <text class="cardKey" id="keyOffset" x="272" y="248">Offset</text>
-          <text class="cardVal tappable" id="hudOffset" x="474" y="324" text-anchor="end">—</text>
+          <rect id="cardBgOffset" class="cardBg" x="258" y="100" width="226" height="78" rx="14"/>
+          <text class="cardKey" id="keyOffset" x="272" y="122">Offset</text>
+          <text class="cardVal tappable" id="hudOffset" x="480" y="165" text-anchor="end">—</text>
         </g>
 
-        <!-- Between Bends card -->
+        <!-- Card 3: Between Bends  y=186 -->
         <g>
-          <rect class="cardBg" x="256" y="360" width="230" height="128" rx="16"/>
-          <text class="cardKey" x="272" y="390">Between Bends</text>
-          <text class="cardVal tappable" id="hudSpacing" x="474" y="466" text-anchor="end">—</text>
+          <rect class="cardBg" x="258" y="186" width="226" height="78" rx="14"/>
+          <text class="cardKey" x="272" y="208">Between Bends</text>
+          <text class="cardVal tappable" id="hudSpacing" x="480" y="251" text-anchor="end">—</text>
         </g>
 
-        <!-- Shrink card -->
+        <!-- Card 4: Shrink  y=272 -->
         <g>
-          <rect class="cardBg" x="256" y="502" width="230" height="128" rx="16"/>
-          <text class="cardKey" x="272" y="532">Shrink</text>
-          <text class="cardVal tappable" id="hudShrink" x="474" y="608" text-anchor="end">—</text>
+          <rect class="cardBg" x="258" y="272" width="226" height="78" rx="14"/>
+          <text class="cardKey" x="272" y="294">Shrink</text>
+          <text class="cardVal tappable" id="hudShrink" x="480" y="337" text-anchor="end">—</text>
+        </g>
+
+        <!-- Card 5: Adjacent  y=358 -->
+        <g id="hudAdjacent">
+          <rect id="cardBgAdjacent" class="cardBg" x="258" y="358" width="226" height="78" rx="14"/>
+          <text class="cardKey" id="keyAdjacent" x="272" y="380">Adjacent</text>
+          <text class="cardVal" id="hudAdjacentVal" x="480" y="423" text-anchor="end">—</text>
         </g>
 
         <!-- Info drawer — overlays bottom of screen -->
@@ -111,11 +117,11 @@
         </g>
 
         <!-- drag/status hint -->
-        <text id="labelHelp" x="122" y="810" text-anchor="middle"></text>
+        <text id="labelHelp" x="110" y="810" text-anchor="middle"></text>
       </svg>
     </section>
   </main>
 
-  <script src="./app.js?v=44"></script>
+  <script src="./app.js?v=50"></script>
 </body>
 </html>
