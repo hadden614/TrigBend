@@ -1,4 +1,4 @@
-// app.js (complete) — v40
+// app.js (complete) — v43
 // TrigBend — Offset
 //
 // Visible changes included:
@@ -36,6 +36,10 @@ const mTextL = document.getElementById("mTextL");
 
 const hudTitle = document.getElementById("hudTitle");
 const hudFlip = document.getElementById("hudFlip");
+const keyAngle = document.getElementById("keyAngle");
+const keyOffset = document.getElementById("keyOffset");
+const cardBgAngle  = document.getElementById("cardBgAngle");
+const cardBgOffset = document.getElementById("cardBgOffset");
 const hudAngle = document.getElementById("hudAngle");
 const hudOffset = document.getElementById("hudOffset");
 const hudSpacing = document.getElementById("hudSpacing");
@@ -57,7 +61,7 @@ let offset_in = 6.0;  // Target/actual offset shown
 let thetaDeg = 22.5;  // Target/actual angle shown
 
 let lockMode = "offset"; // "offset" or "angle"
-let orient = "x";        // "x" baseline horizontal, "y" baseline vertical
+let orient = "y";        // "x" baseline horizontal, "y" baseline vertical (default portrait)
 
 // drawing-only (inches)
 const LEAD_IN_IN = 4;
@@ -68,13 +72,18 @@ const THETA_MIN_DEG = 0.1;
 const THETA_MAX_DEG = 89.0;
 const OVERLAP_CLEARANCE_IN = 0.25;
 
-// auto-fit scale
-const VIEW_W = 900;
-const VIEW_H = 520;
-const MARGIN = 52;
+// auto-fit scale — split-column layout:
+//   orient="y" → conduit in left 240px column, cards on right
+//   orient="x" → conduit expanded to full width
+const VIEW_W = 500;
+const VIEW_H = 820;
+const MARGIN = 16;
+const COL_W  = 240;   // width of conduit column (left side)
+const DRAW_CENTER_X_Y = 115;  // horizontal center of conduit when orient="y"
+const DRAW_CENTER_Y   = 420;  // vertical center of conduit (fixed)
 const PX_PER_IN_MIN = 7;
-const PX_PER_IN_MAX = 22;
-let PX_PER_IN = 12;
+const PX_PER_IN_MAX = 32;
+let PX_PER_IN = 14;
 
 // centering in *pixels* after scaling and orientation
 let shiftPx = { x: 0, y: 0 };
@@ -107,7 +116,7 @@ function toScreenFromIn(pIn){
   const xpx = p.x * PX_PER_IN + shiftPx.x;
   const ypx = p.y * PX_PER_IN + shiftPx.y;
   // y-down svg
-  return { x: xpx, y: (VIEW_H/2) - ypx };
+  return { x: xpx, y: DRAW_CENTER_Y - ypx };
 }
 
 function setLineIn(el, aIn, bIn){
@@ -252,17 +261,21 @@ function computeAutoFitScaleAndShift(allPtsIn, extraRadiusIn){
   const wIn = Math.max(1e-6, maxx - minx);
   const hIn = Math.max(1e-6, maxy - miny);
 
-  const sx = (VIEW_W - 2*MARGIN) / wIn;
-  const sy = (VIEW_H - 2*MARGIN) / hIn;
+  // orient="y": conduit lives in left COL_W; orient="x": full width
+  const drawCX = orient === "y" ? DRAW_CENTER_X_Y : (VIEW_W / 2);
+  const availW = orient === "y" ? (COL_W - 2*MARGIN) : (VIEW_W - 2*MARGIN);
+  const availH = VIEW_H - 2*MARGIN;
+
+  const sx = availW / wIn;
+  const sy = availH / hIn;
   PX_PER_IN = clamp(Math.min(sx, sy), PX_PER_IN_MIN, PX_PER_IN_MAX);
 
-  // shift so bbox center sits at screen center (in px, then converted in toScreenFromIn)
   const cx = (minx + maxx)/2;
   const cy = (miny + maxy)/2;
 
   shiftPx = {
-    x: (VIEW_W/2) - (cx * PX_PER_IN),
-    y: 0 - (cy * PX_PER_IN) // because we already center around VIEW_H/2 in y mapping
+    x: drawCX - (cx * PX_PER_IN),
+    y: 0 - (cy * PX_PER_IN)
   };
 }
 
@@ -312,7 +325,9 @@ function enforceConstraints(){
   }
 
   if (!lastStatus){
-    lastStatus = "Drag pipe left/right. Tap Angle/Offset to lock. Tap Flip to rotate.";
+    lastStatus = orient === "y"
+      ? "Drag pipe up/down to change spacing. Tap Angle/Offset to lock."
+      : "Drag pipe left/right to change spacing. Tap Angle/Offset to lock.";
   }
 }
 
@@ -344,7 +359,9 @@ function buildGeometryInInches(){
   const START = add(T1, { x: -LEAD_IN_IN, y: 0 });
   const END = add(E2, { x: LEAD_OUT_IN, y: 0 });
 
-  const shrink = L_in * (1 - Math.cos(th));
+  // Full shrink: horizontal run reduction = straight-section loss + arc-section loss
+  // shrink = L*(1-cosθ) + 2R*(θ - sinθ)
+  const shrink = L_in * (1 - Math.cos(th)) + 2 * R_in * (th - Math.sin(th));
 
   return { START, T1, C1, E1, T2, C2, E2, END, shrink };
 }
@@ -380,9 +397,13 @@ function render(){
   pipe.setAttribute("d", d);
   pipeHit.setAttribute("d", d);
 
-  // highlight tangent-to-tangent straight segment (E1 -> T2)
-  const E1s = toScreenFromIn(g.E1);
-  ttSegment.setAttribute("d", `M ${E1s.x} ${E1s.y} L ${T2s.x} ${T2s.y}`);
+  // highlight both bend arcs (bend 1: T1→E1, bend 2: T2→E2)
+  ttSegment.setAttribute("d", [
+    `M ${T1s.x} ${T1s.y}`,
+    arcCmdIn(g.T1, g.E1, true),
+    `M ${T2s.x} ${T2s.y}`,
+    arcCmdIn(g.T2, g.E2, false),
+  ].join(" "));
 
   // markers
   setCircleIn(t1El, g.T1);
@@ -408,42 +429,49 @@ function render(){
   const leftWing = add(baseIn, mul(nIn,  wingIn));
   const rightWing = add(baseIn, mul(nIn, -wingIn));
 
-  const B = toScreenFromIn(baseIn);
   const L = toScreenFromIn(leftWing);
   const R = toScreenFromIn(rightWing);
   const T = toScreenFromIn(tipIn);
   dirArrow.setAttribute("d", `M ${T.x} ${T.y} L ${L.x} ${L.y} L ${R.x} ${R.y} Z`);
 
-  // measurement line for L: draw parallel to E1->T2, offset slightly
+  // Offset height annotation: vertical dimension from baseline to exit level
+  // placed 2" to the right of the pipe end so it doesn't overlap the conduit
   {
-    const a = toScreenFromIn(g.E1);
-    const b = toScreenFromIn(g.T2);
+    const measX = g.END.x + 2;
+    const a = toScreenFromIn({ x: measX, y: 0 });           // at baseline
+    const b = toScreenFromIn({ x: measX, y: offset_in });   // at offset height
+
     const vx = b.x - a.x, vy = b.y - a.y;
     const len = Math.hypot(vx, vy) || 1;
-    const nx = -vy/len, ny = vx/len;
+    const nx = -vy/len, ny = vx/len; // perpendicular pointing outward
 
-    // offset outward
-    const off = 22;
-    const a2 = { x: a.x + nx*off, y: a.y + ny*off };
-    const b2 = { x: b.x + nx*off, y: b.y + ny*off };
+    mLineL.setAttribute("x1", a.x);
+    mLineL.setAttribute("y1", a.y);
+    mLineL.setAttribute("x2", b.x);
+    mLineL.setAttribute("y2", b.y);
 
-    mLineL.setAttribute("x1", a2.x);
-    mLineL.setAttribute("y1", a2.y);
-    mLineL.setAttribute("x2", b2.x);
-    mLineL.setAttribute("y2", b2.y);
-
-    const mid = { x: (a2.x + b2.x)/2, y: (a2.y + b2.y)/2 };
-    mTextL.setAttribute("x", mid.x + nx*10);
-    mTextL.setAttribute("y", mid.y + ny*10);
-    mTextL.textContent = `${fmt(L_in,2)} in`;
+    const mid = { x: (a.x + b.x)/2, y: (a.y + b.y)/2 };
+    mTextL.setAttribute("x", mid.x + nx*14);
+    mTextL.setAttribute("y", mid.y + ny*14 + 4);
+    mTextL.textContent = `${fmt(offset_in,2)} in`;
   }
 
-  // HUD values
-  hudTitle.textContent = lockMode === "offset" ? "LOCKED: OFFSET" : "LOCKED: ANGLE";
+  // Card highlighting: locked card gets blue tint + cyan label
+  const LOCKED_CARD_BG   = "rgba(8,70,150,0.65)";
+  const NORMAL_CARD_BG   = "rgba(14,22,38,0.90)";
+  const lockedLabelClr   = "rgba(120,220,255,0.95)";
+  const unlockedLabelClr = "rgba(255,255,255,0.55)";
+
+  cardBgAngle.setAttribute("fill",  lockMode === "angle"  ? LOCKED_CARD_BG : NORMAL_CARD_BG);
+  cardBgOffset.setAttribute("fill", lockMode === "offset" ? LOCKED_CARD_BG : NORMAL_CARD_BG);
+  keyAngle.setAttribute("fill",  lockMode === "angle"  ? lockedLabelClr : unlockedLabelClr);
+  keyOffset.setAttribute("fill", lockMode === "offset" ? lockedLabelClr : unlockedLabelClr);
+
+  hudTitle.textContent = lockMode === "offset" ? "OFFSET LOCKED" : "ANGLE LOCKED";
   hudAngle.textContent = `${fmt(thetaDeg,1)}°`;
-  hudOffset.textContent = `${fmt(offset_in,2)} in`;
-  hudSpacing.textContent = `${fmt(L_in,2)} in`;
-  hudShrink.textContent = `${fmt(g.shrink,2)} in`;
+  hudOffset.textContent = `${fmt(offset_in,2)}"`;
+  hudSpacing.textContent = `${fmt(L_in,2)}"`;
+  hudShrink.textContent = `${fmt(g.shrink,2)}"`;
 
   labelHelp.textContent = lastStatus;
 }
@@ -470,9 +498,9 @@ const explain = {
   },
   shrink: {
     title: "Shrink",
-    body: "How much horizontal distance the offset consumes.",
-    body2: "Used when measuring from a fixed point: subtract shrink from your run.",
-    body3: "Formula: Shrink = L(1 − cosθ)."
+    body: "How much horizontal run is lost to the offset geometry.",
+    body2: "Subtract shrink from your straight-run dimension when marking layout.",
+    body3: "Formula: L(1−cosθ) + 2R(θ−sinθ)."
   },
   flip: {
     title: "Flip",
@@ -559,7 +587,8 @@ function getSvgPoint(evt){
 function onDown(e){
   const p = getSvgPoint(e);
   dragging = true;
-  dragStart = { x: p.x, y: p.y, L_in };
+  // snapshot PX_PER_IN so drag sensitivity stays consistent even as auto-fit rescales
+  dragStart = { x: p.x, y: p.y, L_in, pxPerIn: PX_PER_IN };
   svg.setPointerCapture?.(e.pointerId);
   e.preventDefault();
 }
@@ -568,9 +597,11 @@ function onMove(e){
   if (!dragging || !dragStart) return;
   const p = getSvgPoint(e);
 
-  // horizontal drag changes L (works well in both orientations on phone)
-  const dx = p.x - dragStart.x;
-  const dL = dx / PX_PER_IN;
+  // drag direction follows the orientation: vertical conduit → drag up/down
+  const delta = orient === "y"
+    ? (dragStart.y - p.y)   // y orient: upward drag increases L
+    : (p.x - dragStart.x);  // x orient: rightward drag increases L
+  const dL = delta / dragStart.pxPerIn; // use scale captured at drag start
 
   L_in = clamp(dragStart.L_in + dL, 0.25, 240);
   render();
