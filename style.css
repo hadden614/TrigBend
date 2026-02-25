@@ -115,6 +115,18 @@ main{
   font-weight: 800;
 }
 
+#mLineC{
+  stroke: rgba(120,220,255,0.55);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 4;
+}
+
+#mTextC{
+  fill: rgba(120,220,255,0.85);
+  font-size: 13px;
+  font-weight: 700;
+}
+
 /* ── General SVG text defaults ── */
 text{
   fill: rgba(255,255,255,0.85);
@@ -136,21 +148,14 @@ text{
 
 .cardKey{
   fill: rgba(255,255,255,0.55);
-  font-size: 15px;
+  font-size: 12px;
   font-weight: 600;
 }
 
 .cardVal{
   fill: rgba(255,255,255,0.95);
-  font-size: 30px;
+  font-size: 20px;
   font-weight: 900;
-}
-
-/* ── Flip button text ── */
-.hudBtn{
-  fill: rgba(255,255,255,0.90);
-  font-size: 17px;
-  font-weight: 700;
 }
 
 /* ── Info drawer ── */
