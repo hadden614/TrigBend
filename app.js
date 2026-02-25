@@ -1,4 +1,4 @@
-// app.js (complete) — v50
+// app.js (complete) — v52
 // TrigBend — Offset
 //
 // Changes in v50:
@@ -525,10 +525,47 @@ function closeInfo(){
 }
 infoClose.addEventListener("click", closeInfo);
 
+// ---------- Custom input overlay (replaces prompt() — works on iOS standalone) ----------
+const inputOverlay = document.getElementById("inputOverlay");
+const inputLabel   = document.getElementById("inputLabel");
+const inputField   = document.getElementById("inputField");
+const inputOk      = document.getElementById("inputOk");
+const inputCancel  = document.getElementById("inputCancel");
+
+let _inputResolve = null;
+
+function showInput(labelText, currentVal){
+  return new Promise((resolve) => {
+    _inputResolve = resolve;
+    inputLabel.textContent = labelText;
+    inputField.value = currentVal;
+    inputOverlay.classList.remove("hidden");
+    // slight delay so keyboard doesn't fight the animation
+    setTimeout(() => { inputField.focus(); inputField.select(); }, 80);
+  });
+}
+
+function _closeInput(value){
+  inputOverlay.classList.add("hidden");
+  inputField.blur();
+  if (_inputResolve) { _inputResolve(value); _inputResolve = null; }
+}
+
+inputOk.addEventListener("click", () => _closeInput(inputField.value));
+inputCancel.addEventListener("click", () => _closeInput(null));
+inputField.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") _closeInput(inputField.value);
+  if (e.key === "Escape") _closeInput(null);
+});
+// tap backdrop to cancel
+inputOverlay.addEventListener("click", (e) => {
+  if (e.target === inputOverlay) _closeInput(null);
+});
+
 // ---------- HUD interactions ----------
-hudAngle.addEventListener("click", ()=>{
+hudAngle.addEventListener("click", async ()=>{
   openInfo("angle");
-  const v = prompt("Enter Angle (degrees). This will LOCK ANGLE:", String(thetaDeg.toFixed(1)));
+  const v = await showInput("Angle (°) — locks angle", thetaDeg.toFixed(1));
   if (v === null) return;
   const n = parseFloat(v);
   if (!Number.isFinite(n)) return;
@@ -537,9 +574,9 @@ hudAngle.addEventListener("click", ()=>{
   render();
 });
 
-hudOffset.addEventListener("click", ()=>{
+hudOffset.addEventListener("click", async ()=>{
   openInfo("offset");
-  const v = prompt("Enter Offset (inches). This will LOCK OFFSET:", String(offset_in.toFixed(2)));
+  const v = await showInput("Offset (inches) — locks offset", offset_in.toFixed(2));
   if (v === null) return;
   const n = parseFloat(v);
   if (!Number.isFinite(n) || n <= 0) return;
@@ -548,9 +585,9 @@ hudOffset.addEventListener("click", ()=>{
   render();
 });
 
-hudSpacing.addEventListener("click", ()=>{
+hudSpacing.addEventListener("click", async ()=>{
   openInfo("spacing");
-  const v = prompt("Enter Between Bends L (inches):", String(L_in.toFixed(2)));
+  const v = await showInput("Between Bends L (inches)", L_in.toFixed(2));
   if (v === null) return;
   const n = parseFloat(v);
   if (!Number.isFinite(n) || n <= 0) return;
