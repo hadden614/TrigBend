@@ -5,7 +5,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>TrigBend — Offset</title>
-  <link rel="stylesheet" href="./style.css?v=40" />
+  <link rel="stylesheet" href="./style.css?v=42" />
 </head>
 <body>
   <header>
@@ -15,7 +15,7 @@
 
   <main>
     <section class="stage">
-      <svg id="svg" viewBox="0 0 900 520" aria-label="Conduit drawing area">
+      <svg id="svg" viewBox="0 0 500 820" aria-label="Conduit drawing area">
         <defs>
           <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
             <path d="M 24 0 L 0 0 0 24" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
@@ -26,7 +26,7 @@
           </marker>
         </defs>
 
-        <rect x="0" y="0" width="900" height="520" fill="url(#grid)"></rect>
+        <rect x="0" y="0" width="500" height="820" fill="url(#grid)"></rect>
 
         <!-- baseline -->
         <line id="baseline" x1="0" y1="0" x2="0" y2="0"></line>
@@ -34,60 +34,60 @@
         <!-- pipe -->
         <path id="pipe" d=""></path>
 
-        <!-- highlighted tangent-to-tangent straight segment -->
+        <!-- highlighted bend arcs -->
         <path id="ttSegment" d=""></path>
 
         <!-- invisible fat hitbox -->
         <path id="pipeHit" d=""></path>
 
         <!-- markers -->
-        <circle id="t1" r="4"></circle>
-        <circle id="t2" r="4"></circle>
-        <circle id="handle" r="11"></circle>
+        <circle id="t1" r="5"></circle>
+        <circle id="t2" r="5"></circle>
+        <circle id="handle" r="15"></circle>
 
         <!-- layout start tick + direction arrow -->
         <line id="startTick" x1="0" y1="0" x2="0" y2="0"></line>
         <path id="dirArrow" d=""></path>
 
-        <!-- measurement line for L (between bends) -->
+        <!-- offset height measurement annotation -->
         <line id="mLineL" x1="0" y1="0" x2="0" y2="0"></line>
         <text id="mTextL" x="0" y="0"></text>
 
-        <!-- HUD -->
+        <!-- HUD — full width across top -->
         <g id="hud">
-          <rect id="hudBg" x="14" y="14" width="360" height="132" rx="12"></rect>
+          <rect id="hudBg" x="14" y="14" width="472" height="180" rx="14"></rect>
 
-          <text class="hudTitle" id="hudTitle" x="28" y="40">LOCKED: OFFSET</text>
-          <text class="hudBtn tappable" id="hudFlip" x="330" y="40">Flip</text>
+          <text class="hudTitle" id="hudTitle" x="28" y="46">OFFSET LOCKED</text>
+          <text class="hudBtn tappable" id="hudFlip" x="466" y="46" text-anchor="end">Flip</text>
 
-          <text class="hudKey" id="keyAngle" x="28" y="68">Angle</text>
-          <text class="hudVal tappable" id="hudAngle" x="250" y="68">—</text>
+          <text class="hudKey" id="keyAngle" x="28" y="82">Angle</text>
+          <text class="hudVal tappable" id="hudAngle" x="466" y="82" text-anchor="end">—</text>
 
-          <text class="hudKey" id="keyOffset" x="28" y="92">Offset</text>
-          <text class="hudVal tappable" id="hudOffset" x="250" y="92">—</text>
+          <text class="hudKey" id="keyOffset" x="28" y="114">Offset</text>
+          <text class="hudVal tappable" id="hudOffset" x="466" y="114" text-anchor="end">—</text>
 
-          <text class="hudKey" x="28" y="116">Between Bends</text>
-          <text class="hudVal tappable" id="hudSpacing" x="250" y="116">—</text>
+          <text class="hudKey" x="28" y="146">Between Bends</text>
+          <text class="hudVal tappable" id="hudSpacing" x="466" y="146" text-anchor="end">—</text>
 
-          <text class="hudKey" x="28" y="140">Shrink</text>
-          <text class="hudVal tappable" id="hudShrink" x="250" y="140">—</text>
+          <text class="hudKey" x="28" y="178">Shrink</text>
+          <text class="hudVal tappable" id="hudShrink" x="466" y="178" text-anchor="end">—</text>
         </g>
 
-        <!-- Info drawer -->
+        <!-- Info drawer — anchored to bottom -->
         <g id="info" visibility="hidden">
-          <rect id="infoBg" x="14" y="372" width="872" height="134" rx="14"></rect>
-          <text id="infoTitle" x="28" y="404"></text>
-          <text id="infoBody" x="28" y="432"></text>
-          <text id="infoBody2" x="28" y="458"></text>
-          <text id="infoBody3" x="28" y="484"></text>
-          <text id="infoClose" class="tappable" x="820" y="404">Close</text>
+          <rect id="infoBg" x="14" y="614" width="472" height="196" rx="14"></rect>
+          <text id="infoTitle" x="28" y="642"></text>
+          <text id="infoBody" x="28" y="668"></text>
+          <text id="infoBody2" x="28" y="692"></text>
+          <text id="infoBody3" x="28" y="716"></text>
+          <text id="infoClose" class="tappable" x="466" y="642" text-anchor="end">Close</text>
         </g>
 
-        <text id="labelHelp" x="18" y="178"></text>
+        <text id="labelHelp" x="18" y="202"></text>
       </svg>
     </section>
   </main>
 
-  <script src="./app.js?v=41"></script>
+  <script src="./app.js?v=42"></script>
 </body>
 </html>

@@ -26,8 +26,8 @@ header{
   padding: 14px 14px 10px;
   border-bottom: 1px solid rgba(255,255,255,0.08);
 }
-.title{ font-weight: 800; font-size: 16px; }
-.subtitle{ margin-top: 4px; color: var(--muted); font-size: 12px; }
+.title{ font-weight: 800; font-size: 18px; }
+.subtitle{ margin-top: 4px; color: var(--muted); font-size: 13px; }
 
 main{
   padding: 12px;
@@ -58,7 +58,7 @@ main{
 #pipe{
   fill: none;
   stroke: var(--pipe);
-  stroke-width: 7;
+  stroke-width: 9;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -66,7 +66,7 @@ main{
 #ttSegment{
   fill: none;
   stroke: var(--tt);
-  stroke-width: 10;
+  stroke-width: 13;
   stroke-linecap: round;
   stroke-linejoin: round;
   opacity: 0.95;
@@ -111,13 +111,13 @@ main{
 
 #mTextL{
   fill: rgba(255,255,255,0.80);
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 800;
 }
 
 text{
   fill: rgba(255,255,255,0.85);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .tappable{
@@ -133,24 +133,24 @@ text{
 
 .hudTitle{
   fill: rgba(120,220,255,0.95);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 900;
 }
 
 .hudBtn{
   fill: rgba(255,255,255,0.85);
-  font-size: 13px;
+  font-size: 18px;
   font-weight: 900;
 }
 
 .hudKey{
   fill: rgba(255,255,255,0.70);
-  font-size: 14px;
+  font-size: 19px;
 }
 
 .hudVal{
   fill: rgba(255,255,255,0.92);
-  font-size: 16px;
+  font-size: 24px;
   font-weight: 900;
 }
 
@@ -162,7 +162,7 @@ text{
 
 #infoTitle{
   fill: rgba(120,220,255,0.95);
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 900;
 }
 #infoBody, #infoBody2, #infoBody3{
@@ -171,10 +171,11 @@ text{
 }
 #infoClose{
   fill: rgba(255,255,255,0.86);
-  font-size: 14px;
+  font-size: 16px;
+  font-weight: 700;
 }
 
 #labelHelp{
   fill: rgba(255,255,255,0.65);
-  font-size: 13px;
+  font-size: 14px;
 }

@@ -1,4 +1,4 @@
-// app.js (complete) — v40
+// app.js (complete) — v41
 // TrigBend — Offset
 //
 // Visible changes included:
@@ -59,7 +59,7 @@ let offset_in = 6.0;  // Target/actual offset shown
 let thetaDeg = 22.5;  // Target/actual angle shown
 
 let lockMode = "offset"; // "offset" or "angle"
-let orient = "x";        // "x" baseline horizontal, "y" baseline vertical
+let orient = "y";        // "x" baseline horizontal, "y" baseline vertical (default portrait)
 
 // drawing-only (inches)
 const LEAD_IN_IN = 4;
@@ -70,13 +70,15 @@ const THETA_MIN_DEG = 0.1;
 const THETA_MAX_DEG = 89.0;
 const OVERLAP_CLEARANCE_IN = 0.25;
 
-// auto-fit scale
-const VIEW_W = 900;
-const VIEW_H = 520;
-const MARGIN = 52;
+// auto-fit scale — portrait layout, conduit drawn below the HUD
+const VIEW_W = 500;
+const VIEW_H = 820;
+const MARGIN = 44;
+const HUD_BOTTOM = 206;  // y-pixel where HUD+labelHelp end; conduit drawn below here
+const DRAW_CENTER_Y = Math.round(HUD_BOTTOM + (VIEW_H - HUD_BOTTOM) / 2); // ~513
 const PX_PER_IN_MIN = 7;
-const PX_PER_IN_MAX = 22;
-let PX_PER_IN = 12;
+const PX_PER_IN_MAX = 28;
+let PX_PER_IN = 14;
 
 // centering in *pixels* after scaling and orientation
 let shiftPx = { x: 0, y: 0 };
@@ -109,7 +111,7 @@ function toScreenFromIn(pIn){
   const xpx = p.x * PX_PER_IN + shiftPx.x;
   const ypx = p.y * PX_PER_IN + shiftPx.y;
   // y-down svg
-  return { x: xpx, y: (VIEW_H/2) - ypx };
+  return { x: xpx, y: DRAW_CENTER_Y - ypx };
 }
 
 function setLineIn(el, aIn, bIn){
@@ -255,7 +257,7 @@ function computeAutoFitScaleAndShift(allPtsIn, extraRadiusIn){
   const hIn = Math.max(1e-6, maxy - miny);
 
   const sx = (VIEW_W - 2*MARGIN) / wIn;
-  const sy = (VIEW_H - 2*MARGIN) / hIn;
+  const sy = (VIEW_H - HUD_BOTTOM - 2*MARGIN) / hIn;
   PX_PER_IN = clamp(Math.min(sx, sy), PX_PER_IN_MIN, PX_PER_IN_MAX);
 
   // shift so bbox center sits at screen center (in px, then converted in toScreenFromIn)
@@ -314,7 +316,9 @@ function enforceConstraints(){
   }
 
   if (!lastStatus){
-    lastStatus = "Drag pipe left/right. Tap Angle/Offset to lock. Tap Flip to rotate.";
+    lastStatus = orient === "y"
+      ? "Drag pipe up/down to change spacing. Tap Angle/Offset to lock."
+      : "Drag pipe left/right to change spacing. Tap Angle/Offset to lock.";
   }
 }
 
@@ -578,9 +582,11 @@ function onMove(e){
   if (!dragging || !dragStart) return;
   const p = getSvgPoint(e);
 
-  // horizontal drag changes L (works well in both orientations on phone)
-  const dx = p.x - dragStart.x;
-  const dL = dx / dragStart.pxPerIn; // use scale captured at drag start
+  // drag direction follows the orientation: vertical conduit → drag up/down
+  const delta = orient === "y"
+    ? (dragStart.y - p.y)   // y orient: upward drag increases L
+    : (p.x - dragStart.x);  // x orient: rightward drag increases L
+  const dL = delta / dragStart.pxPerIn; // use scale captured at drag start
 
   L_in = clamp(dragStart.L_in + dL, 0.25, 240);
   render();
