@@ -5,7 +5,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>TrigBend — Offset</title>
-  <link rel="stylesheet" href="./style.css?v=51" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <link rel="stylesheet" href="./style.css?v=52" />
 </head>
 <body>
   <header>
@@ -122,6 +125,18 @@
     </section>
   </main>
 
-  <script src="./app.js?v=51"></script>
+  <!-- Input overlay (replaces prompt() — works on iOS standalone mode) -->
+  <div id="inputOverlay" class="input-overlay hidden">
+    <div class="input-sheet">
+      <div id="inputLabel" class="input-label">Enter value</div>
+      <input id="inputField" type="number" inputmode="decimal" class="input-field" autocomplete="off" />
+      <div class="input-buttons">
+        <button id="inputCancel" class="input-btn cancel">Cancel</button>
+        <button id="inputOk" class="input-btn ok">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="./app.js?v=52"></script>
 </body>
 </html>
