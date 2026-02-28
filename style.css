@@ -1,4 +1,4 @@
-/* style.css (complete) — v54 */
+/* style.css (complete) — v56 */
 :root{
   --bg: #0b0f14;
   --text: rgba(255,255,255,0.92);
@@ -147,6 +147,21 @@ text{
   fill: rgba(255,255,255,0.80);
   font-size: 15px;
   font-weight: 700;
+}
+
+/* Tangent-point markers (end of each arc) */
+#tpE1, #tpE2{
+  fill: rgba(255,255,255,0.35);
+  stroke: rgba(255,255,255,0.70);
+  stroke-width: 1.5;
+}
+
+/* Arrow / start mark at T1 */
+#startArrow{
+  fill: rgba(80,220,255,0.90);
+  stroke: rgba(0,0,0,0.40);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
 }
 
 /* ── Status / hint ── */

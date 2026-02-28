@@ -1,4 +1,4 @@
-// app.js (complete) — v55
+// app.js (complete) — v56
 // TrigBend — Offset
 //
 // v54 changes:
@@ -18,6 +18,9 @@ const m1El = document.getElementById("m1");
 const m2El = document.getElementById("m2");
 const m1TickEl = document.getElementById("m1Tick");
 const m2TickEl = document.getElementById("m2Tick");
+const startArrowEl = document.getElementById("startArrow");
+const tpE1El = document.getElementById("tpE1");
+const tpE2El = document.getElementById("tpE2");
 
 const handleEl = document.getElementById("handle");
 
@@ -43,7 +46,7 @@ const infoBody3 = document.getElementById("infoBody3");
 const infoClose = document.getElementById("infoClose");
 
 // ---------- Geometry / UI state ----------
-let R_in = 6.0; // CLR
+let R_in = 5.75; // CLR — 1/2" EMT (Greenlee 1818)
 
 let L_in = 12.0;      // Between bends (tangent-to-tangent along sloped segment)
 let offset_in = 6.0;  // Target/actual offset (centerline)
@@ -408,9 +411,11 @@ function enforceConstraints(){
   }
 }
 
-// Center-to-center between bends (mark spacing on pipe)
+// Between bends — traditional trig multiplier method: offset / sin(θ)
+// For 30°: multiplier = 1/sin(30°) = 2.000 exactly → between bends = 2 × offset
 function centerToCenterIn(){
-  return L_in + R_in * deg2rad(thetaDeg);
+  const sinT = Math.sin(deg2rad(thetaDeg));
+  return sinT < 1e-9 ? 0 : offset_in / sinT;
 }
 
 function buildGeometryInInches(){
@@ -440,18 +445,16 @@ function buildGeometryInInches(){
   const START = add(T1, { x: -LEAD_IN_IN, y: 0 });
   const END   = add(E2, { x:  LEAD_OUT_IN, y: 0 });
 
-  // Center of each arc (midpoint — the bend mark location)
-  // M1: rotate T1 around C1 by th/2
-  const M1 = add(C1, rot({ x: 0, y: -R_in }, th/2));
-  // M2: rotate T2 around C2 by -th/2
-  const M2 = add(C2, rot(mul(rightN, -R_in), -th/2));
+  // M1 = start of first arc (arrow / start mark — bender arrow aligns here)
+  const M1 = T1; // {x:0, y:0}
+  // M2 = start of second arc (second bend mark)
+  const M2 = T2;
 
-  // Pipe direction at M1 and M2 (for tick marks perpendicular to pipe)
-  const dirAtM1 = rot(dir0, th/2);  // pipe direction at center of arc 1
-  const dirAtM2 = rot(dir0, th/2);  // pipe direction at center of arc 2 (same angle from horiz)
-  // Perpendicular (normal) at each mark
-  const normM1 = { x: -dirAtM1.y, y: dirAtM1.x };
-  const normM2 = { x: -dirAtM2.y, y: dirAtM2.x };
+  // Perpendicular to pipe at each mark (for tick lines)
+  // At T1: pipe direction = dir0 = {x:1,y:0}  → perp = {x:0, y:1}
+  const normM1 = { x: 0, y: 1 };
+  // At T2: pipe direction = dir1 = rot(dir0, th) → perp = {x:-sin(th), y:cos(th)}
+  const normM2 = { x: -dir1.y, y: dir1.x };
 
   // shrink = L(1−cosθ) + 2R(θ−sinθ)
   const shrink = L_in * (1 - Math.cos(th)) + 2 * R_in * (th - Math.sin(th));
@@ -504,7 +507,7 @@ function render(){
   setCircleIn(m1El, g.M1);
   setCircleIn(m2El, g.M2);
 
-  // Tick marks at M1 and M2 (perpendicular to pipe)
+  // Tick marks at M1 (=T1) and M2 (=T2), perpendicular to pipe
   const tickLen = 0.55; // inches
   setLineIn(m1TickEl,
     add(g.M1, mul(g.normM1, -tickLen)),
@@ -514,6 +517,22 @@ function render(){
     add(g.M2, mul(g.normM2, -tickLen)),
     add(g.M2, mul(g.normM2,  tickLen))
   );
+
+  // Tangent-point markers at E1 and E2 (end of each arc)
+  setCircleIn(tpE1El, g.E1);
+  setCircleIn(tpE2El, g.E2);
+
+  // Arrow mark at T1 — triangle pointing in the pipe direction (downward on screen)
+  // pipe direction at T1 (dir0={x:1,y:0}) maps to screen-down after orientation transform
+  {
+    const o = toScreenFromIn(g.T1);
+    const sz = 9;
+    startArrowEl.setAttribute("points",
+      `${o.x},${o.y + sz} ` +
+      `${o.x - sz * 0.65},${o.y - sz * 0.45} ` +
+      `${o.x + sz * 0.65},${o.y - sz * 0.45}`
+    );
+  }
 
   // ── Card highlight ──
   const LOCKED_CARD_BG   = "rgba(8,70,150,0.65)";
@@ -567,7 +586,7 @@ function render(){
     else if (anglePinned && offsetPinned)
       lastStatus = "Both locked — drag to release angle and adjust spacing.";
     else
-      lastStatus = "Drag pipe up/down to change spacing. Tap cards to lock.";
+      lastStatus = "Drag pipe left/right to change offset. Tap cards to lock.";
   }
   labelHelp.textContent = lastStatus;
 }
@@ -576,8 +595,8 @@ function render(){
 const explain = {
   angle: {
     title: "Angle (tap to lock)",
-    body: "Locks the bend angle for both bends.",
-    body2: "Enter angle + offset together to lock both — L solves automatically.",
+    body: "Multiplier = 1/sin(θ).  30°→2.000  22.5°→2.613  45°→1.414",
+    body2: "Enter angle + offset together to lock both — spacing solves.",
     body3: "Angle is capped to < 90°."
   },
   offset: {
@@ -587,10 +606,10 @@ const explain = {
     body3: "If impossible (or overlap), values cap to realistic limits."
   },
   spacing: {
-    title: "Between Bends (center to center)",
-    body: "Arc center to arc center — the mark spacing on the pipe.",
-    body2: "Formula: L + R·θ  (tangent spacing + arc correction).",
-    body3: "Drag the pipe up/down to adjust it."
+    title: "Between Bends — multiplier method",
+    body: "Mark spacing = Offset ÷ sin(θ)  =  Offset × multiplier.",
+    body2: "30° multiplier = 2.000 exactly → between bends = 2× offset.",
+    body3: "Tap to enter. Drag pipe left/right to change offset live."
   },
   shrink: {
     title: "Shrink",
@@ -691,17 +710,16 @@ hudOffset.addEventListener("click", async ()=>{
 
 hudSpacing.addEventListener("click", async ()=>{
   openInfo("spacing");
-  // Display and accept center-to-center value
-  const v = await showInput("Between Bends — center to center (inches)", centerToCenterIn().toFixed(2));
+  const v = await showInput("Between Bends — offset × 1/sin(θ) (inches)", centerToCenterIn().toFixed(2));
   if (v === null) return;
   const n = parseFloat(v);
   if (!Number.isFinite(n) || n <= 0) return;
-  // Convert center-to-center → tangent-to-tangent
-  const ctc = clamp(n, 0.25, 240);
-  const correction = R_in * deg2rad(thetaDeg);
-  L_in = clamp(ctc - correction, 0.1, 240);
-  // Entering between-bends releases "both locked" mode → keep offset pinned, release angle
-  if (anglePinned && offsetPinned) anglePinned = false;
+  // between_bends = offset / sin(θ)  →  offset = between_bends × sin(θ)
+  const sinT = Math.sin(deg2rad(thetaDeg));
+  if (sinT < 1e-9) return;
+  offset_in = clamp(n * sinT, 0.1, 240);
+  offsetPinned = true;
+  if (anglePinned) anglePinned = false; // entering BB releases angle lock
   adjacentPinned = false;
   render();
 });
@@ -750,7 +768,7 @@ function onDown(e){
 
   dragStart = {
     x: p.x, y: p.y,
-    L_in,
+    L_in, offset_in,
     thetaDeg,
     pxPerIn: PX_PER_IN,
     adjacentPinned
@@ -764,16 +782,20 @@ function onMove(e){
   const p = getSvgPoint(e);
 
   if (dragStart.adjacentPinned){
-    // Drag adjusts angle (adjacent stays fixed, L recomputes)
-    // Upward drag (smaller y) → larger angle
-    const delta = dragStart.y - p.y;
-    const dTheta = delta * 0.3; // degrees per pixel
+    // Adjacent locked: vertical drag changes angle (adjacent stays, L recomputes)
+    const delta = dragStart.y - p.y; // upward → larger angle
+    const dTheta = delta * 0.3;
     thetaDeg = clamp(dragStart.thetaDeg + dTheta, THETA_MIN_DEG, THETA_MAX_DEG);
+  } else if (anglePinned) {
+    // Angle locked: vertical drag (along pipe) changes L → offset recomputes
+    const delta = p.y - dragStart.y; // downward → more between bends
+    L_in = clamp(dragStart.L_in + delta / dragStart.pxPerIn, 0.25, 240);
   } else {
-    // Standard: drag adjusts L (between bends)
-    const delta = dragStart.y - p.y;
-    const dL = delta / dragStart.pxPerIn;
-    L_in = clamp(dragStart.L_in + dL, 0.25, 240);
+    // Default: horizontal drag (screen-x = offset direction) changes offset height
+    // Right → more offset; left → less offset.  Theta recomputes; L stays fixed.
+    const delta = p.x - dragStart.x;
+    offset_in = clamp(dragStart.offset_in + delta / dragStart.pxPerIn, 0.1, 240);
+    L_in = dragStart.L_in;
   }
 
   render();
