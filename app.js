@@ -1,4 +1,4 @@
-// app.js (complete) — v54
+// app.js (complete) — v55
 // TrigBend — Offset
 //
 // v54 changes:
@@ -54,7 +54,8 @@ let anglePinned    = false; // user has explicitly set angle
 let offsetPinned   = true;  // user has explicitly set offset (default)
 let adjacentPinned = false; // user has explicitly set adjacent
 
-let adjacent_in = 0; // target adjacent when adjacentPinned
+let adjacent_in = 0;        // target adjacent when adjacentPinned
+let lastAdjacentIn = 0;     // last computed adjacent (for input prompt)
 
 // ---------- Derived lock mode label ----------
 function lockLabel(){
@@ -102,6 +103,29 @@ function mul(a,k){ return { x: a.x * k, y: a.y * k }; }
 function mag(v){ return Math.hypot(v.x, v.y); }
 function norm(v){ const m = mag(v) || 1; return { x: v.x/m, y: v.y/m }; }
 function fmt(n, d=2){ return Number.isFinite(n) ? n.toFixed(d) : "—"; }
+
+// Display inches as ruler fractions to the nearest 1/16"
+// e.g.  6.5 → 6 1/2"   11.9375 → 11 15/16"   14.0 → 1' 2"
+function gcd(a, b){ return b === 0 ? a : gcd(b, a % b); }
+function fmtRuler(decIn){
+  if (!Number.isFinite(decIn)) return "—";
+  const neg = decIn < 0;
+  let sixteenths = Math.round(Math.abs(decIn) * 16);
+  const totalIn  = Math.floor(sixteenths / 16);
+  const fracSix  = sixteenths % 16;
+  const feet     = Math.floor(totalIn / 12);
+  const inches   = totalIn % 12;
+  let fracStr = "";
+  if (fracSix !== 0){
+    const g = gcd(fracSix, 16);
+    fracStr = ` ${fracSix/g}/${16/g}`;
+  }
+  const sign = neg ? "-" : "";
+  if (feet > 0){
+    return `${sign}${feet}' ${inches}${fracStr}"`;
+  }
+  return `${sign}${inches}${fracStr}"`;
+}
 
 // orient is always "y": rotate +90° so pipe runs top→bottom in screen
 function orientXformIn(pIn){
@@ -536,11 +560,12 @@ function render(){
     adjacentPinned ? adjLabelClr : unlockedLabelClr);
 
   hudTitle.textContent = lockLabel();
-  hudAngle.textContent   = `${fmt(thetaDeg,1)}°`;
-  hudOffset.textContent  = `${fmt(offset_in,2)}"`;
-  hudSpacing.textContent = `${fmt(centerToCenterIn(),2)}"`;
-  hudShrink.textContent  = `${fmt(g.shrink,2)}"`;
-  hudAdjacentVal.textContent = `${fmt(g.adjacent,2)}"`;
+  lastAdjacentIn = g.adjacent;
+  hudAngle.textContent       = `${fmt(thetaDeg,1)}°`;
+  hudOffset.textContent      = fmtRuler(offset_in);
+  hudSpacing.textContent     = fmtRuler(centerToCenterIn());
+  hudShrink.textContent      = fmtRuler(g.shrink);
+  hudAdjacentVal.textContent = fmtRuler(g.adjacent);
 
   if (!lastStatus){
     if (adjacentPinned && anglePinned)
@@ -692,8 +717,7 @@ hudTitle.addEventListener("click", ()=>openInfo("capped"));
 
 document.getElementById("hudAdjacent").addEventListener("click", async ()=>{
   openInfo("adjacent");
-  const cur = parseFloat(hudAdjacentVal.textContent) || 0;
-  const v = await showInput("Adjacent — horizontal run (inches)", cur.toFixed(2));
+  const v = await showInput("Adjacent — horizontal run (inches)", lastAdjacentIn.toFixed(2));
   if (v === null) return;
   const n = parseFloat(v);
   if (!Number.isFinite(n) || n <= 0) return;
