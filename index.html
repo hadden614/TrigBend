@@ -1,18 +1,18 @@
-<!-- index.html (complete) — v54 -->
+<!-- index.html (complete) — v56 -->
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>TrigBend v55 — Offset</title>
+  <title>TrigBend v56 — Offset</title>
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <link rel="stylesheet" href="./style.css?v=55" />
+  <link rel="stylesheet" href="./style.css?v=56" />
 </head>
 <body>
   <header>
-    <div class="title">TrigBend — Offset <span style="background:#f00;color:#fff;font-size:11px;padding:2px 6px;border-radius:4px;vertical-align:middle;">v55</span></div>
+    <div class="title">TrigBend — Offset <span style="background:#f00;color:#fff;font-size:11px;padding:2px 6px;border-radius:4px;vertical-align:middle;">v56</span></div>
   </header>
 
   <main>
@@ -44,11 +44,18 @@
         <!-- drag handle -->
         <circle id="handle" r="18"></circle>
 
-        <!-- bend center marks (M1, M2) — dot + tick -->
+        <!-- tangent-point markers at E1 and E2 (end of each arc) -->
+        <circle id="tpE1" r="4"></circle>
+        <circle id="tpE2" r="4"></circle>
+
+        <!-- bend marks M1=T1 (arrow/start mark) and M2=T2 — dot + tick -->
         <circle id="m1" r="6"></circle>
         <line id="m1Tick" x1="0" y1="0" x2="0" y2="0"></line>
         <circle id="m2" r="6"></circle>
         <line id="m2Tick" x1="0" y1="0" x2="0" y2="0"></line>
+
+        <!-- arrow mark at T1 — triangle pointing in pipe direction -->
+        <polygon id="startArrow" points="0,0"></polygon>
 
         <!-- lock status -->
         <text id="hudTitle" class="tappable" x="110" y="790"
@@ -120,6 +127,6 @@
     </div>
   </div>
 
-  <script src="./app.js?v=55"></script>
+  <script src="./app.js?v=56"></script>
 </body>
 </html>
