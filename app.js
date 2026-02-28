@@ -1,38 +1,33 @@
-// app.js (complete) — v52
+// app.js (complete) — v54
 // TrigBend — Offset
 //
-// Changes in v50:
-// - Removed Flip button; orient is always "y" (vertical pipe, portrait)
-// - Smaller cards (h=78), Adjacent card added
-// - Handle moved to midpoint of T1→T2 diagonal
-// - C1→C2 dimension line for "between bends" annotation
-// - Adjacent = horizontal run of offset = 2R·sinθ + L·cosθ
-// - Scale clamping: PX_PER_IN_MIN lowered so pipe never runs off screen
-// - Auto-fit vertical always uses left 240px column
+// v54 changes:
+// - Removed pipe decorations (baseline, tick, arrow, dimension lines)
+// - Orange shading over bend arcs only (arc to arc)
+// - M1/M2 marks at CENTER of each arc (bend marks)
+// - Between Bends now shows CENTER-TO-CENTER (L + R·θ)
+// - "Both Locked" mode: entering both angle AND offset locks both, solves for L
+// - Adjacent is now lockable: tap to enter, locks horizontal run
 
 const svg = document.getElementById("svg");
 const pipe = document.getElementById("pipe");
 const ttSegment = document.getElementById("ttSegment");
 const pipeHit = document.getElementById("pipeHit");
-const baseline = document.getElementById("baseline");
 
-const t1El = document.getElementById("t1");
-const t2El = document.getElementById("t2");
+const m1El = document.getElementById("m1");
+const m2El = document.getElementById("m2");
+const m1TickEl = document.getElementById("m1Tick");
+const m2TickEl = document.getElementById("m2Tick");
+
 const handleEl = document.getElementById("handle");
-
-const startTick = document.getElementById("startTick");
-const dirArrow = document.getElementById("dirArrow");
-
-const mLineL = document.getElementById("mLineL");
-const mTextL = document.getElementById("mTextL");
-const mLineC = document.getElementById("mLineC");
-const mTextC = document.getElementById("mTextC");
 
 const hudTitle = document.getElementById("hudTitle");
 const keyAngle = document.getElementById("keyAngle");
 const keyOffset = document.getElementById("keyOffset");
+const keyAdjacent = document.getElementById("keyAdjacent");
 const cardBgAngle  = document.getElementById("cardBgAngle");
 const cardBgOffset = document.getElementById("cardBgOffset");
+const cardBgAdjacent = document.getElementById("cardBgAdjacent");
 const hudAngle = document.getElementById("hudAngle");
 const hudOffset = document.getElementById("hudOffset");
 const hudSpacing = document.getElementById("hudSpacing");
@@ -48,13 +43,27 @@ const infoBody3 = document.getElementById("infoBody3");
 const infoClose = document.getElementById("infoClose");
 
 // ---------- Geometry / UI state ----------
-let R_in = 6.0; // CLR (later from bender select)
+let R_in = 6.0; // CLR
 
 let L_in = 12.0;      // Between bends (tangent-to-tangent along sloped segment)
-let offset_in = 6.0;  // Target/actual offset shown
-let thetaDeg = 22.5;  // Target/actual angle shown
+let offset_in = 6.0;  // Target/actual offset (centerline)
+let thetaDeg = 22.5;  // Bend angle per bend
 
-let lockMode = "offset"; // "offset" or "angle"
+// Lock flags — any combination can be set
+let anglePinned    = false; // user has explicitly set angle
+let offsetPinned   = true;  // user has explicitly set offset (default)
+let adjacentPinned = false; // user has explicitly set adjacent
+
+let adjacent_in = 0; // target adjacent when adjacentPinned
+
+// ---------- Derived lock mode label ----------
+function lockLabel(){
+  if (adjacentPinned) return "ADJACENT LOCKED";
+  if (anglePinned && offsetPinned) return "BOTH LOCKED";
+  if (anglePinned)  return "ANGLE LOCKED";
+  if (offsetPinned) return "OFFSET LOCKED";
+  return "OFFSET MODE";
+}
 
 // drawing-only (inches)
 const LEAD_IN_IN = 4;
@@ -70,9 +79,9 @@ const VIEW_W = 500;
 const VIEW_H = 820;
 const MARGIN = 16;
 const COL_W  = 240;
-const DRAW_CENTER_X_Y = 115;  // horizontal center of conduit column
-const DRAW_CENTER_Y   = 420;  // vertical center (fixed)
-const PX_PER_IN_MIN = 2;      // low min so pipe never clips off screen
+const DRAW_CENTER_X_Y = 115;
+const DRAW_CENTER_Y   = 420;
+const PX_PER_IN_MIN = 2;
 const PX_PER_IN_MAX = 32;
 let PX_PER_IN = 14;
 
@@ -91,10 +100,10 @@ function add(a,b){ return { x: a.x + b.x, y: a.y + b.y }; }
 function sub(a,b){ return { x: a.x - b.x, y: a.y - b.y }; }
 function mul(a,k){ return { x: a.x * k, y: a.y * k }; }
 function mag(v){ return Math.hypot(v.x, v.y); }
+function norm(v){ const m = mag(v) || 1; return { x: v.x/m, y: v.y/m }; }
 function fmt(n, d=2){ return Number.isFinite(n) ? n.toFixed(d) : "—"; }
 
 // orient is always "y": rotate +90° so pipe runs top→bottom in screen
-// inch-space (x right, y up) → screen-space: (x,y)→(y,−x)
 function orientXformIn(pIn){
   return { x: pIn.y, y: -pIn.x };
 }
@@ -144,17 +153,30 @@ function solveThetaForOffset(targetH, Ltest){
   const hLo = offsetForTheta(lo, Ltest);
   const hHi = offsetForTheta(hi, Ltest);
 
-  if (targetH <= hLo) return { thetaDeg: THETA_MIN_DEG, capped: true, reason: "Offset capped to minimum." };
-  if (targetH >= hHi) return { thetaDeg: THETA_MAX_DEG, capped: true, reason: "Offset capped: not achievable for this L + CLR." };
+  if (targetH <= hLo) return { thetaDeg: THETA_MIN_DEG, capped: true };
+  if (targetH >= hHi) return { thetaDeg: THETA_MAX_DEG, capped: true };
 
   let a = lo, b = hi;
   for (let i=0;i<28;i++){
     const mid = (a+b)/2;
-    const h = offsetForTheta(mid, Ltest);
-    if (h > targetH) b = mid;
+    if (offsetForTheta(mid, Ltest) > targetH) b = mid;
     else a = mid;
   }
-  return { thetaDeg: rad2deg((a+b)/2), capped: false, reason: "" };
+  return { thetaDeg: rad2deg((a+b)/2), capped: false };
+}
+
+// Given adjacent and theta, solve for L
+function LfromAdjacentAndTheta(adj, thetaRad){
+  const cosT = Math.cos(thetaRad);
+  if (Math.abs(cosT) < 1e-9) return 240;
+  return (adj - 2*R_in*Math.sin(thetaRad)) / cosT;
+}
+
+// Given angle and offset, solve for L
+function LfromAngleAndOffset(thetaRad, targetOffset){
+  const sinT = Math.sin(thetaRad);
+  if (Math.abs(sinT) < 1e-9) return 240;
+  return (targetOffset - 2*R_in*(1-Math.cos(thetaRad))) / sinT;
 }
 
 function centersInInches(thetaRad, Ltest){
@@ -178,8 +200,7 @@ function centersInInches(thetaRad, Ltest){
 function overlaps(thetaRad, Ltest){
   const { C1, C2 } = centersInInches(thetaRad, Ltest);
   const d = mag(sub(C2, C1));
-  const minDist = (2*R_in) + OVERLAP_CLEARANCE_IN;
-  return d < minDist;
+  return d < (2*R_in) + OVERLAP_CLEARANCE_IN;
 }
 
 function findMinFeasibleL_forOffset(targetOffset){
@@ -246,7 +267,6 @@ function computeAutoFitScaleAndShift(allPtsIn, extraRadiusIn){
 
   const sx = availW / wIn;
   const sy = availH / hIn;
-  // clamp: never exceed PX_PER_IN_MAX, and never go below 2 (so pipe always fits)
   PX_PER_IN = clamp(Math.min(sx, sy), PX_PER_IN_MIN, PX_PER_IN_MAX);
 
   const cx = (minx + maxx)/2;
@@ -258,51 +278,121 @@ function computeAutoFitScaleAndShift(allPtsIn, extraRadiusIn){
   };
 }
 
-// ---------- Build + enforce constraints ----------
+// ---------- Constraint enforcement ----------
 let lastStatus = "";
 
 function enforceConstraints(){
   lastStatus = "";
 
-  const thLocked = deg2rad(clamp(thetaDeg, THETA_MIN_DEG, THETA_MAX_DEG));
+  if (adjacentPinned) {
+    // Adjacent is locked. Keep current theta, solve for L from adjacent+theta.
+    // If offset is also pinned: numerically solve for theta first.
+    const th = deg2rad(clamp(thetaDeg, THETA_MIN_DEG, THETA_MAX_DEG));
 
-  if (lockMode === "offset"){
+    if (offsetPinned) {
+      // Two equations: offset = f(L,θ), adjacent = g(L,θ). Solve numerically for θ.
+      // adjacent = 2R·sinθ + L·cosθ  and  offset = L·sinθ + 2R·(1-cosθ)
+      // From adjacent: L = (adj - 2R·sinθ)/cosθ
+      // Substitute into offset: offset = ((adj-2R·sinθ)/cosθ)·sinθ + 2R·(1-cosθ)
+      // Solve for θ numerically.
+      let lo = deg2rad(THETA_MIN_DEG), hi = deg2rad(THETA_MAX_DEG);
+      const f = (t) => {
+        const sinT = Math.sin(t), cosT = Math.cos(t);
+        if (Math.abs(cosT) < 1e-9) return 1e9;
+        const Ltest = (adjacent_in - 2*R_in*sinT) / cosT;
+        return offsetForTheta(t, Ltest) - offset_in;
+      };
+      // Check if solvable
+      const flo = f(lo), fhi = f(hi);
+      if (flo * fhi > 0){
+        // Not solvable with both constraints — relax offset pin
+        offsetPinned = false;
+        lastStatus = "CAPPED: Cannot satisfy both offset and adjacent — offset unlocked.";
+      } else {
+        for (let i=0;i<32;i++){
+          const mid = (lo+hi)/2;
+          if (f(mid)*flo > 0) lo = mid; else hi = mid;
+        }
+        const solvedTh = (lo+hi)/2;
+        thetaDeg = clamp(rad2deg(solvedTh), THETA_MIN_DEG, THETA_MAX_DEG);
+        const th2 = deg2rad(thetaDeg);
+        L_in = clamp(LfromAdjacentAndTheta(adjacent_in, th2), 0.25, 240);
+        offset_in = offsetForTheta(th2, L_in);
+      }
+    }
+
+    if (!offsetPinned) {
+      // Only adjacent pinned. Keep current theta, solve for L.
+      const th2 = deg2rad(clamp(thetaDeg, THETA_MIN_DEG, THETA_MAX_DEG));
+      L_in = clamp(LfromAdjacentAndTheta(adjacent_in, th2), 0.25, 240);
+      if (overlaps(th2, L_in)){
+        L_in = findMinFeasibleL_forAngle(th2);
+        // Recompute adjacent from new L
+        adjacent_in = 2*R_in*Math.sin(th2) + L_in*Math.cos(th2);
+        lastStatus = "CAPPED: Bends overlap — adjacent adjusted.";
+      }
+      offset_in = offsetForTheta(th2, L_in);
+    }
+
+    return;
+  }
+
+  // --- No adjacent pin ---
+
+  if (anglePinned && offsetPinned) {
+    // Both angle and offset locked — solve for L.
+    const th = deg2rad(clamp(thetaDeg, THETA_MIN_DEG, THETA_MAX_DEG));
+    L_in = LfromAngleAndOffset(th, offset_in);
+    L_in = clamp(L_in, 0.25, 240);
+    if (L_in <= 0.25 && offsetForTheta(th, 0.25) < offset_in){
+      // Capped low
+      offset_in = offsetForTheta(th, 0.25);
+      lastStatus = "CAPPED: Offset too high for this angle — offset adjusted.";
+    } else if (overlaps(th, L_in)){
+      L_in = findMinFeasibleL_forAngle(th);
+      offset_in = offsetForTheta(th, L_in);
+      lastStatus = "CAPPED: Bends overlap — between bends adjusted.";
+    }
+    return;
+  }
+
+  if (anglePinned) {
+    // Only angle locked — compute offset from L and theta.
+    const th = deg2rad(clamp(thetaDeg, THETA_MIN_DEG, THETA_MAX_DEG));
+    thetaDeg = rad2deg(th);
+    offset_in = offsetForTheta(th, L_in);
+    if (overlaps(th, L_in)){
+      L_in = findMinFeasibleL_forAngle(th);
+      offset_in = offsetForTheta(th, L_in);
+      lastStatus = "CAPPED: Bends overlap — between bends adjusted.";
+    }
+    return;
+  }
+
+  // offsetPinned or default — solve angle from offset and L.
+  {
     const maxH = maxOffsetForL(L_in);
     if (offset_in > maxH){
       offset_in = maxH;
       lastStatus = "CAPPED: Offset too high for this Between Bends + CLR.";
     }
-
     const sol = solveThetaForOffset(offset_in, L_in);
     thetaDeg = sol.thetaDeg;
     const th = deg2rad(thetaDeg);
-
     if (overlaps(th, L_in)){
       const minL = findMinFeasibleL_forOffset(offset_in);
       if (minL > L_in + 1e-6) L_in = minL;
-
       const maxH2 = maxOffsetForL(L_in);
       if (offset_in > maxH2) offset_in = maxH2;
       thetaDeg = solveThetaForOffset(offset_in, L_in).thetaDeg;
-
-      lastStatus = "CAPPED: Bends overlap — increased Between Bends to minimum.";
-    }
-  } else {
-    thetaDeg = rad2deg(thLocked);
-    offset_in = offsetForTheta(thLocked, L_in);
-
-    if (overlaps(thLocked, L_in)){
-      const minL = findMinFeasibleL_forAngle(thLocked);
-      if (minL > L_in + 1e-6) L_in = minL;
-      offset_in = offsetForTheta(thLocked, L_in);
-
-      lastStatus = "CAPPED: Bends overlap — increased Between Bends to minimum.";
+      lastStatus = "CAPPED: Bends overlap — between bends adjusted.";
     }
   }
+}
 
-  if (!lastStatus){
-    lastStatus = "Drag pipe up/down to change spacing. Tap Angle/Offset to lock.";
-  }
+// Center-to-center between bends (mark spacing on pipe)
+function centerToCenterIn(){
+  return L_in + R_in * deg2rad(thetaDeg);
 }
 
 function buildGeometryInInches(){
@@ -332,13 +422,25 @@ function buildGeometryInInches(){
   const START = add(T1, { x: -LEAD_IN_IN, y: 0 });
   const END   = add(E2, { x:  LEAD_OUT_IN, y: 0 });
 
+  // Center of each arc (midpoint — the bend mark location)
+  // M1: rotate T1 around C1 by th/2
+  const M1 = add(C1, rot({ x: 0, y: -R_in }, th/2));
+  // M2: rotate T2 around C2 by -th/2
+  const M2 = add(C2, rot(mul(rightN, -R_in), -th/2));
+
+  // Pipe direction at M1 and M2 (for tick marks perpendicular to pipe)
+  const dirAtM1 = rot(dir0, th/2);  // pipe direction at center of arc 1
+  const dirAtM2 = rot(dir0, th/2);  // pipe direction at center of arc 2 (same angle from horiz)
+  // Perpendicular (normal) at each mark
+  const normM1 = { x: -dirAtM1.y, y: dirAtM1.x };
+  const normM2 = { x: -dirAtM2.y, y: dirAtM2.x };
+
   // shrink = L(1−cosθ) + 2R(θ−sinθ)
   const shrink = L_in * (1 - Math.cos(th)) + 2 * R_in * (th - Math.sin(th));
-
   // adjacent = horizontal run of offset = 2R·sinθ + L·cosθ
   const adjacent = 2 * R_in * Math.sin(th) + L_in * Math.cos(th);
 
-  return { START, T1, C1, E1, T2, C2, E2, END, shrink, adjacent };
+  return { START, T1, C1, E1, T2, C2, E2, END, M1, M2, normM1, normM2, shrink, adjacent };
 }
 
 // ---------- Rendering ----------
@@ -350,14 +452,12 @@ function render(){
     R_in
   );
 
-  // baseline (extends beyond pipe)
-  setLineIn(baseline, {x:-200, y:0}, {x:200, y:0});
-
   const S    = toScreenFromIn(g.START);
   const T1s  = toScreenFromIn(g.T1);
   const T2s  = toScreenFromIn(g.T2);
   const ENDs = toScreenFromIn(g.END);
 
+  // Main pipe path
   const d = [
     `M ${S.x} ${S.y}`,
     `L ${T1s.x} ${T1s.y}`,
@@ -370,7 +470,7 @@ function render(){
   pipe.setAttribute("d", d);
   pipeHit.setAttribute("d", d);
 
-  // highlight both bend arcs
+  // Orange shading — arc portions only (T1→E1 and T2→E2)
   ttSegment.setAttribute("d", [
     `M ${T1s.x} ${T1s.y}`,
     arcCmdIn(g.T1, g.E1, true),
@@ -378,97 +478,78 @@ function render(){
     arcCmdIn(g.T2, g.E2, false),
   ].join(" "));
 
-  // tangent markers
-  setCircleIn(t1El, g.T1);
-  setCircleIn(t2El, g.T2);
-
   // drag handle at midpoint of T1→T2 diagonal
   const midT = { x: (g.T1.x + g.T2.x) / 2, y: (g.T1.y + g.T2.y) / 2 };
   setCircleIn(handleEl, midT);
 
-  // layout start tick (perpendicular to baseline, i.e. along x-axis in inch space)
-  // orient="y": "forward along pipe baseline" is inch-space +x → screen down
-  // tick is perpendicular: inch-space +y → screen right
-  const tickLenIn = 0.6;
-  const nIn  = {x:1, y:0}; // perpendicular to baseline direction in inch-space
-  const dirIn = {x:0, y:1}; // forward along baseline in inch-space (screen-down)
+  // Bend center marks M1 and M2
+  setCircleIn(m1El, g.M1);
+  setCircleIn(m2El, g.M2);
 
-  setLineIn(startTick,
-    add(g.T1, mul(nIn, -tickLenIn)),
-    add(g.T1, mul(nIn,  tickLenIn))
+  // Tick marks at M1 and M2 (perpendicular to pipe)
+  const tickLen = 0.55; // inches
+  setLineIn(m1TickEl,
+    add(g.M1, mul(g.normM1, -tickLen)),
+    add(g.M1, mul(g.normM1,  tickLen))
   );
-
-  // direction arrow at T1
-  const arrowLenIn = 1.1;
-  const wingIn = 0.35;
-  const baseIn = add(g.T1, mul(dirIn, -0.2));
-  const tipIn  = add(g.T1, mul(dirIn,  arrowLenIn));
-  const leftWing  = add(baseIn, mul(nIn,  wingIn));
-  const rightWing = add(baseIn, mul(nIn, -wingIn));
-  const Lw = toScreenFromIn(leftWing);
-  const Rw = toScreenFromIn(rightWing);
-  const Tp = toScreenFromIn(tipIn);
-  dirArrow.setAttribute("d", `M ${Tp.x} ${Tp.y} L ${Lw.x} ${Lw.y} L ${Rw.x} ${Rw.y} Z`);
-
-  // ── Offset annotation: vertical rise from baseline to E2 level ──
-  // Draw 2" to the right of g.END
-  {
-    const measX = g.END.x + 2;
-    const a = toScreenFromIn({ x: measX, y: 0 });
-    const b = toScreenFromIn({ x: measX, y: offset_in });
-
-    mLineL.setAttribute("x1", a.x);
-    mLineL.setAttribute("y1", a.y);
-    mLineL.setAttribute("x2", b.x);
-    mLineL.setAttribute("y2", b.y);
-
-    const vx = b.x - a.x, vy = b.y - a.y;
-    const len = Math.hypot(vx, vy) || 1;
-    const nx = -vy/len, ny = vx/len;
-    const mid = { x: (a.x+b.x)/2, y: (a.y+b.y)/2 };
-    mTextL.setAttribute("x", mid.x + nx*14);
-    mTextL.setAttribute("y", mid.y + ny*14 + 4);
-    mTextL.textContent = `${fmt(offset_in,2)}"`;
-  }
-
-  // ── Between-bends annotation: C1 → C2 (arc center to arc center) ──
-  {
-    const c1s = toScreenFromIn(g.C1);
-    const c2s = toScreenFromIn(g.C2);
-
-    mLineC.setAttribute("x1", c1s.x);
-    mLineC.setAttribute("y1", c1s.y);
-    mLineC.setAttribute("x2", c2s.x);
-    mLineC.setAttribute("y2", c2s.y);
-
-    const vx = c2s.x - c1s.x, vy = c2s.y - c1s.y;
-    const len = Math.hypot(vx, vy) || 1;
-    // perpendicular pointing left (toward center of column)
-    const nx = -vy/len, ny = vx/len;
-    const mid = { x: (c1s.x + c2s.x)/2, y: (c1s.y + c2s.y)/2 };
-    mTextC.setAttribute("x", mid.x + nx*16);
-    mTextC.setAttribute("y", mid.y + ny*16 + 4);
-    mTextC.textContent = `${fmt(L_in,2)}"`;
-  }
+  setLineIn(m2TickEl,
+    add(g.M2, mul(g.normM2, -tickLen)),
+    add(g.M2, mul(g.normM2,  tickLen))
+  );
 
   // ── Card highlight ──
   const LOCKED_CARD_BG   = "rgba(8,70,150,0.65)";
+  const ADJ_CARD_BG      = "rgba(8,100,60,0.65)";
+  const BOTH_CARD_BG     = "rgba(80,20,140,0.65)";
   const NORMAL_CARD_BG   = "rgba(14,22,38,0.90)";
   const lockedLabelClr   = "rgba(120,220,255,0.95)";
+  const adjLabelClr      = "rgba(80,255,160,0.95)";
+  const bothLabelClr     = "rgba(220,150,255,0.95)";
   const unlockedLabelClr = "rgba(255,255,255,0.55)";
 
-  cardBgAngle.setAttribute("fill",  lockMode === "angle"  ? LOCKED_CARD_BG : NORMAL_CARD_BG);
-  cardBgOffset.setAttribute("fill", lockMode === "offset" ? LOCKED_CARD_BG : NORMAL_CARD_BG);
-  keyAngle.setAttribute("fill",  lockMode === "angle"  ? lockedLabelClr : unlockedLabelClr);
-  keyOffset.setAttribute("fill", lockMode === "offset" ? lockedLabelClr : unlockedLabelClr);
+  const bothActive = anglePinned && offsetPinned && !adjacentPinned;
 
-  hudTitle.textContent = lockMode === "offset" ? "OFFSET LOCKED" : "ANGLE LOCKED";
+  cardBgAngle.setAttribute("fill",
+    adjacentPinned ? NORMAL_CARD_BG :
+    bothActive     ? BOTH_CARD_BG   :
+    anglePinned    ? LOCKED_CARD_BG : NORMAL_CARD_BG);
+
+  cardBgOffset.setAttribute("fill",
+    adjacentPinned ? NORMAL_CARD_BG :
+    bothActive     ? BOTH_CARD_BG   :
+    offsetPinned   ? LOCKED_CARD_BG : NORMAL_CARD_BG);
+
+  cardBgAdjacent.setAttribute("fill",
+    adjacentPinned ? ADJ_CARD_BG : NORMAL_CARD_BG);
+
+  keyAngle.setAttribute("fill",
+    adjacentPinned ? unlockedLabelClr :
+    bothActive     ? bothLabelClr     :
+    anglePinned    ? lockedLabelClr   : unlockedLabelClr);
+
+  keyOffset.setAttribute("fill",
+    adjacentPinned ? unlockedLabelClr :
+    bothActive     ? bothLabelClr     :
+    offsetPinned   ? lockedLabelClr   : unlockedLabelClr);
+
+  keyAdjacent.setAttribute("fill",
+    adjacentPinned ? adjLabelClr : unlockedLabelClr);
+
+  hudTitle.textContent = lockLabel();
   hudAngle.textContent   = `${fmt(thetaDeg,1)}°`;
   hudOffset.textContent  = `${fmt(offset_in,2)}"`;
-  hudSpacing.textContent = `${fmt(L_in,2)}"`;
+  hudSpacing.textContent = `${fmt(centerToCenterIn(),2)}"`;
   hudShrink.textContent  = `${fmt(g.shrink,2)}"`;
   hudAdjacentVal.textContent = `${fmt(g.adjacent,2)}"`;
 
+  if (!lastStatus){
+    if (adjacentPinned && anglePinned)
+      lastStatus = "Adjacent + Angle locked — tap a card to change.";
+    else if (anglePinned && offsetPinned)
+      lastStatus = "Both locked — drag to release angle and adjust spacing.";
+    else
+      lastStatus = "Drag pipe up/down to change spacing. Tap cards to lock.";
+  }
   labelHelp.textContent = lastStatus;
 }
 
@@ -477,20 +558,20 @@ const explain = {
   angle: {
     title: "Angle (tap to lock)",
     body: "Locks the bend angle for both bends.",
-    body2: "If Angle is locked, Offset changes as you drag Between Bends.",
+    body2: "Enter angle + offset together to lock both — L solves automatically.",
     body3: "Angle is capped to < 90°."
   },
   offset: {
     title: "Offset (tap to lock)",
     body: "Locks the vertical rise (centerline) of the offset.",
-    body2: "If Offset is locked, Angle is solved automatically for your Between Bends.",
+    body2: "Enter offset + angle together to lock both — L solves automatically.",
     body3: "If impossible (or overlap), values cap to realistic limits."
   },
   spacing: {
-    title: "Between Bends",
-    body: "Tangent-to-tangent spacing along the sloped section.",
-    body2: "Drag the pipe up/down to adjust it.",
-    body3: "If too small, bends overlap and Between Bends caps up."
+    title: "Between Bends (center to center)",
+    body: "Arc center to arc center — the mark spacing on the pipe.",
+    body2: "Formula: L + R·θ  (tangent spacing + arc correction).",
+    body3: "Drag the pipe up/down to adjust it."
   },
   shrink: {
     title: "Shrink",
@@ -499,10 +580,10 @@ const explain = {
     body3: "Formula: L(1−cosθ) + 2R(θ−sinθ)."
   },
   adjacent: {
-    title: "Adjacent",
-    body: "Horizontal span of the offset: how far along the run the pipe travels while making the offset.",
-    body2: "Formula: 2R·sinθ + L·cosθ",
-    body3: "Useful when you need the offset to fit within a fixed horizontal space."
+    title: "Adjacent (tap to lock)",
+    body: "Horizontal span of the offset — useful for limited-space bends.",
+    body2: "Locks the horizontal run. Current angle is kept; L auto-solves.",
+    body3: "Drag to adjust angle while adjacent stays fixed."
   },
   capped: {
     title: "Why it capped",
@@ -525,7 +606,7 @@ function closeInfo(){
 }
 infoClose.addEventListener("click", closeInfo);
 
-// ---------- Custom input overlay (replaces prompt() — works on iOS standalone) ----------
+// ---------- Custom input overlay ----------
 const inputOverlay = document.getElementById("inputOverlay");
 const inputLabel   = document.getElementById("inputLabel");
 const inputField   = document.getElementById("inputField");
@@ -540,7 +621,6 @@ function showInput(labelText, currentVal){
     inputLabel.textContent = labelText;
     inputField.value = currentVal;
     inputOverlay.classList.remove("hidden");
-    // slight delay so keyboard doesn't fight the animation
     setTimeout(() => { inputField.focus(); inputField.select(); }, 80);
   });
 }
@@ -557,7 +637,6 @@ inputField.addEventListener("keydown", (e) => {
   if (e.key === "Enter") _closeInput(inputField.value);
   if (e.key === "Escape") _closeInput(null);
 });
-// tap backdrop to cancel
 inputOverlay.addEventListener("click", (e) => {
   if (e.target === inputOverlay) _closeInput(null);
 });
@@ -565,40 +644,66 @@ inputOverlay.addEventListener("click", (e) => {
 // ---------- HUD interactions ----------
 hudAngle.addEventListener("click", async ()=>{
   openInfo("angle");
-  const v = await showInput("Angle (°) — locks angle", thetaDeg.toFixed(1));
+  const v = await showInput("Angle (°)", thetaDeg.toFixed(1));
   if (v === null) return;
   const n = parseFloat(v);
   if (!Number.isFinite(n)) return;
   thetaDeg = clamp(n, THETA_MIN_DEG, THETA_MAX_DEG);
-  lockMode = "angle";
+  anglePinned = true;
+  adjacentPinned = false;
+  // If offset was already pinned → both locked (L will solve)
+  // If not → angle-only mode
   render();
 });
 
 hudOffset.addEventListener("click", async ()=>{
   openInfo("offset");
-  const v = await showInput("Offset (inches) — locks offset", offset_in.toFixed(2));
+  const v = await showInput("Offset (inches)", offset_in.toFixed(2));
   if (v === null) return;
   const n = parseFloat(v);
   if (!Number.isFinite(n) || n <= 0) return;
   offset_in = clamp(n, 0.1, 240);
-  lockMode = "offset";
+  offsetPinned = true;
+  adjacentPinned = false;
+  // If angle was already pinned → both locked (L will solve)
+  // If not → offset-only mode
   render();
 });
 
 hudSpacing.addEventListener("click", async ()=>{
   openInfo("spacing");
-  const v = await showInput("Between Bends L (inches)", L_in.toFixed(2));
+  // Display and accept center-to-center value
+  const v = await showInput("Between Bends — center to center (inches)", centerToCenterIn().toFixed(2));
   if (v === null) return;
   const n = parseFloat(v);
   if (!Number.isFinite(n) || n <= 0) return;
-  L_in = clamp(n, 0.25, 240);
+  // Convert center-to-center → tangent-to-tangent
+  const ctc = clamp(n, 0.25, 240);
+  const correction = R_in * deg2rad(thetaDeg);
+  L_in = clamp(ctc - correction, 0.1, 240);
+  // Entering between-bends releases "both locked" mode → keep offset pinned, release angle
+  if (anglePinned && offsetPinned) anglePinned = false;
+  adjacentPinned = false;
   render();
 });
 
 hudShrink.addEventListener("click", ()=>openInfo("shrink"));
 hudTitle.addEventListener("click", ()=>openInfo("capped"));
 
-document.getElementById("hudAdjacent").addEventListener("click", ()=>openInfo("adjacent"));
+document.getElementById("hudAdjacent").addEventListener("click", async ()=>{
+  openInfo("adjacent");
+  const cur = parseFloat(hudAdjacentVal.textContent) || 0;
+  const v = await showInput("Adjacent — horizontal run (inches)", cur.toFixed(2));
+  if (v === null) return;
+  const n = parseFloat(v);
+  if (!Number.isFinite(n) || n <= 0) return;
+  adjacent_in = clamp(n, 0.1, 240);
+  adjacentPinned = true;
+  // Keep current angle when locking adjacent
+  anglePinned = true;
+  offsetPinned = false;
+  render();
+});
 
 // ---------- Dragging ----------
 let dragging = false;
@@ -614,9 +719,24 @@ function getSvgPoint(evt){
 }
 
 function onDown(e){
+  // If adjacent+angle both locked, no drag
+  if (adjacentPinned && anglePinned) return;
+
   const p = getSvgPoint(e);
   dragging = true;
-  dragStart = { x: p.x, y: p.y, L_in, pxPerIn: PX_PER_IN };
+
+  // "Both locked" mode: drag releases angle pin, switches to offset-only
+  if (anglePinned && offsetPinned && !adjacentPinned){
+    anglePinned = false;
+  }
+
+  dragStart = {
+    x: p.x, y: p.y,
+    L_in,
+    thetaDeg,
+    pxPerIn: PX_PER_IN,
+    adjacentPinned
+  };
   svg.setPointerCapture?.(e.pointerId);
   e.preventDefault();
 }
@@ -624,10 +744,20 @@ function onDown(e){
 function onMove(e){
   if (!dragging || !dragStart) return;
   const p = getSvgPoint(e);
-  // orient="y": upward drag (smaller y) → increase L
-  const delta = dragStart.y - p.y;
-  const dL = delta / dragStart.pxPerIn;
-  L_in = clamp(dragStart.L_in + dL, 0.25, 240);
+
+  if (dragStart.adjacentPinned){
+    // Drag adjusts angle (adjacent stays fixed, L recomputes)
+    // Upward drag (smaller y) → larger angle
+    const delta = dragStart.y - p.y;
+    const dTheta = delta * 0.3; // degrees per pixel
+    thetaDeg = clamp(dragStart.thetaDeg + dTheta, THETA_MIN_DEG, THETA_MAX_DEG);
+  } else {
+    // Standard: drag adjusts L (between bends)
+    const delta = dragStart.y - p.y;
+    const dL = delta / dragStart.pxPerIn;
+    L_in = clamp(dragStart.L_in + dL, 0.25, 240);
+  }
+
   render();
   e.preventDefault();
 }
