@@ -111,20 +111,14 @@ function fmtRuler(decIn){
   if (!Number.isFinite(decIn)) return "—";
   const neg = decIn < 0;
   let sixteenths = Math.round(Math.abs(decIn) * 16);
-  const totalIn  = Math.floor(sixteenths / 16);
-  const fracSix  = sixteenths % 16;
-  const feet     = Math.floor(totalIn / 12);
-  const inches   = totalIn % 12;
+  const wholeIn = Math.floor(sixteenths / 16);
+  const fracSix = sixteenths % 16;
   let fracStr = "";
   if (fracSix !== 0){
     const g = gcd(fracSix, 16);
     fracStr = ` ${fracSix/g}/${16/g}`;
   }
-  const sign = neg ? "-" : "";
-  if (feet > 0){
-    return `${sign}${feet}' ${inches}${fracStr}"`;
-  }
-  return `${sign}${inches}${fracStr}"`;
+  return `${neg ? "-" : ""}${wholeIn}${fracStr}"`;
 }
 
 // orient is always "y": rotate +90° so pipe runs top→bottom in screen
